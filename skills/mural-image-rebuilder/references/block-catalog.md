@@ -34,6 +34,31 @@ glyphs); area-nested positioned cells (never `create_table`); the shape choices 
 - **`swimlane`** → a header row of `cols` labels + one tinted horizontal lane band per lane (lane
   `label` at the left, band in lane `color`); place each item as a `rounded_square` box in its
   `(lane, col)` cell on the grid. Equal column widths; NOT `create_table`.
+- **`gantt`** → a project schedule (tasks × time). Build in this order into an `area`
+  (`showTitle:false`), reserving a **left gutter** for task labels and a **top band** for the axis;
+  let `colW = plot_width / timeUnits.length` and positions map on the **0..N fractional scale**
+  (0 = left of first unit, N = right of last):
+  1. **Axis:** one `timeUnits` label textbox per column across the top (center each over its
+     column — give the textbox a narrow width, since the default is wide and left-aligns) + a thin
+     vertical gridline `rectangle` at each column boundary, spanning the rows. **Set `stroke_color`
+     on every thin marker shape** — a 2–3px shape with `stroke_size:0` still picks up Mural's dark
+     default border, so pass `stroke_color` = the intended line color (dark hairline gridlines read
+     fine; a "today" line that inherits the default border looks like just another gridline).
+  2. **Phase bands:** for each run of consecutive tasks sharing `group`, a tinted horizontal band
+     (light role fill) behind those rows + the group label in the left gutter (like a swimlane lane).
+  3. **Task rows** (fixed pitch): left-gutter `label` textbox; **bar** = a `rounded_square` in the
+     task `color` at `x = plot_left + start·colW`, `width = (end − start)·colW`, centered in the
+     row band; `percent` → an inner filled `rectangle` of `width·percent/100` + a "NN%" textbox.
+  4. **Milestones:** an `at`-positioned `rhombus_smart` diamond on its row + the label.
+  5. **Today line:** a **~6px** vertical `rectangle` at `plot_left + today·colW` spanning all
+     rows, with **both `background_color` and `stroke_color`** set to the danger/accent color (so
+     it reads red, not as a default-bordered hairline), + a "Today" label above it.
+  6. **Dependencies (do last — the fragile part):** create **all** bars/milestones first, then
+     **real connectors** (`connect_widgets`) predecessor→successor **by widget id** for each `deps`
+     entry (elbow/straight, subtle color); anchoring only works once both endpoints exist. If the
+     graph is dense, draw only the critical-path deps and say so.
+  Keep the date/duration labels (positions are the fidelity, bars the approximation); NOT
+  `create_table`.
 - **`tree`** → the root node shape + child node shapes laid out below (`direction:"down"`) or
   right (`"right"`) of each parent, evenly spaced per subtree, with **real connectors**
   parent→child. Recurse to leaf; create parents before children so connectors anchor.

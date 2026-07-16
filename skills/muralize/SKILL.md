@@ -84,7 +84,8 @@ follow `dataviz`.
   **visual metaphor** matches the relationship (see `references/infographic-patterns.md`):
   `flow` (sequence), `decision` (branching flow), `cycle` (loop/flywheel), `comparison` (vs),
   `table` (matrix), `quadrant` (2×2), `swimlane` (lanes × columns / roadmap), `timeline` (dated
-  axis), `pyramid`/`funnel` (hierarchy/narrowing), `pillars`/`hub`/`tree`/`rings` (structure),
+  axis), `gantt` (schedule/plan with durations), `pyramid`/`funnel` (hierarchy/narrowing),
+  `pillars`/`hub`/`tree`/`rings` (structure),
   `venn` (overlap), `spectrum` (continuum), `cards`/`metrics`/`chips` (parallel items),
   `gauge`/`chart` (quantified), `banner`/`callout` (emphasis).
 - **Capture the header/hero in `meta`, not just in the HTML.** Any eyebrow/kicker line, the
@@ -116,7 +117,9 @@ follow `dataviz`.
   `quadrant` → a CSS grid with axis labels + positioned dots; `pillars` → a capstone bar over
   flex columns; `hub` → a radial SVG (center + spokes + lines); `timeline` → an SVG axis with
   alternating milestone markers; `swimlane` → a CSS grid (rows=lanes, cols=cols) with tinted lane
-  bands; `tree` → a nested CSS/SVG hierarchy with parent→child lines; `venn` → overlapping SVG
+  bands; `gantt` → a CSS grid of task rows × time columns with positioned duration bars (inner
+  `%` fill), milestone ◆s, a "Today" line, and an absolutely-positioned SVG overlay for the
+  dependency arrows; `tree` → a nested CSS/SVG hierarchy with parent→child lines; `venn` → overlapping SVG
   circles (blend so the intersection reads); `spectrum` → a gradient bar with absolutely-positioned
   pole labels + markers; `decision` → an SVG flowchart (terminator/diamond/rectangle nodes +
   labeled edges); `rings` → nested SVG circles. Drive every one from the spec fields — never

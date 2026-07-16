@@ -354,6 +354,36 @@ horizontal lane band per lane (label at left); each item a `rounded_square` box 
 `(lane, col)` cell. HTML: CSS grid (rows = lanes, cols = cols). Item `col` is a 0-based column
 index; omit lanes/cells that are empty.
 
+### gantt — project schedule: tasks with durations on a time axis
+```json
+{ "type": "gantt",
+  "timeUnits": ["Q1", "Q2", "Q3", "Q4"],
+  "today": 2.3,
+  "tasks": [
+    { "id": "disc",  "label": "Discovery", "group": "Foundations", "start": 0, "end": 1,   "percent": 100, "color": "primary" },
+    { "id": "build", "label": "Build",      "group": "Foundations", "start": 1, "end": 3,   "percent": 40,  "color": "accent",  "deps": ["disc"] },
+    { "id": "test",  "label": "Test",       "group": "Launch",      "start": 3, "end": 3.7, "percent": 0,   "color": "warning", "deps": ["build"] },
+    { "id": "ga",    "label": "GA launch",  "group": "Launch",      "at": 3.7,  "milestone": true,          "color": "success", "deps": ["test"] }
+  ] }
+```
+A **project/delivery schedule** — tasks with **durations** laid as horizontal bars along a time
+axis, optionally with phases, progress, milestones, a "today" line, and dependencies. Distinct
+from `timeline` (point milestones, no durations), `swimlane` (categorical lane×column cells, no
+continuous bars), and `chart` bar (magnitude from a baseline, not a start→end span).
+
+**Coordinate model:** positions are on a **fractional 0..N scale** where `N = timeUnits.length`
+(0 = left edge of the first unit, N = right edge of the last). `start`/`end`/`at`/`today` all use
+it. Fields: `timeUnits[]` (ordered column headers = the axis); each task has an `id` (referenced
+by `deps`), a `label`, an optional `group` (phase band); a **bar** via `start`+`end` **or** a
+**milestone** via `at`+`milestone:true`; optional `percent` (0–100 progress), `color` (palette
+role), and `deps` (array of predecessor task `id`s → dependency arrows). `today` is optional.
+
+Rebuilder: an `area` frame with a left label gutter + a top axis header; a duration `rounded_square`
+per task (inner fill for `percent`), diamond for milestones, tinted phase bands, a vertical "today"
+rectangle, and **real connectors** for `deps` (created after all bars exist). HTML: a CSS grid of
+task rows × time columns with positioned bars + an SVG overlay for dependency arrows. See
+`../mural-image-rebuilder/references/block-catalog.md` for the full build recipe.
+
 ### tree — multi-level hierarchical branching (org chart / decomposition / breakdown)
 ```json
 { "type": "tree", "direction": "down",

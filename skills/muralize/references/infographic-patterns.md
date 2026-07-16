@@ -9,6 +9,7 @@ harvested themes onto that pattern's blocks.
 | The conversation is mostly about… | Pattern | Signature blocks |
 |-----------------------------------|---------|------------------|
 | A sequence, process, or how something progresses over stages | `timeline` | `flow` (steps or loop) |
+| A project plan / delivery schedule — task durations & dependencies over time | `timeline` | `gantt` |
 | Comparing options / scoring items across dimensions | `matrix` | `table` |
 | Metrics, status, "how are we doing" | `dashboard` | `metrics`, `cards`, `banner` |
 | A belief system, bets, pillars, or an operating model | `strategy-framework` | `banner`, `flow`, `table`, `cards`, `callout` |
@@ -33,6 +34,9 @@ this?" and pick the metaphor, which maps to a `board-spec` block (schema in `boa
 - **Funnel** — stages that narrow (conversion, drop-off). → `funnel`.
 - **Swimlane / roadmap** — items across **lanes** (workstreams/actors) × **columns** (time,
   phases, now-next-later). → `swimlane`.
+- **Gantt / schedule** — tasks with **durations** on a time axis (bars from start→end), often
+  with phases, % progress, milestones, and dependencies (a project or delivery plan). Distinct
+  from `timeline` (point milestones) and `swimlane` (categorical cells, no durations). → `gantt`.
 - **Decision / branching flow** — a process with **yes/no gates** and branches (not linear). →
   `decision`.
 
