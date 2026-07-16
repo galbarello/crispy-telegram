@@ -1,0 +1,14 @@
+{
+  "sticky_size": 168,
+  "bands": [
+    { "name": "Start",    "color": "#aaed92", "x0": 3658, "y0": 39,   "cols": 9, "rows": 5, "step_x": 191, "step_y": 191 },
+    { "name": "Stop",     "color": "#febbbe", "x0": 3658, "y0": 1136, "cols": 9, "rows": 5, "step_x": 191, "step_y": 191 },
+    { "name": "Continue", "color": "#fcf281", "x0": 3658, "y0": 2238, "cols": 9, "rows": 5, "step_x": 191, "step_y": 191 }
+  ],
+  "content_zones": [
+    { "name": "Group by topic", "x": 5620, "y": 40, "width": 1720, "height": 2560 }
+  ],
+  "content_zone_delete_types": ["sticky_note", "connector", "comment", "text"],
+  "protect_text_contains": ["Drag related stickies", "Group by topic"],
+  "delete_types_anywhere": []
+}

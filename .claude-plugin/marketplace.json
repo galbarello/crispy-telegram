@@ -1,0 +1,14 @@
+{
+  "name": "mural-skills",
+  "owner": {
+    "name": "galbarello",
+    "email": "galbarello@mural.co"
+  },
+  "plugins": [
+    {
+      "name": "mural-skills-pack",
+      "source": "./",
+      "description": "muralize + mural-image-rebuilder skills for turning conversations and images into Mural boards."
+    }
+  ]
+}
