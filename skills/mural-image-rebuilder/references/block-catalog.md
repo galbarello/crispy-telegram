@@ -62,6 +62,22 @@ glyphs); area-nested positioned cells (never `create_table`); the shape choices 
 - **`tree`** → the root node shape + child node shapes laid out below (`direction:"down"`) or
   right (`"right"`) of each parent, evenly spaced per subtree, with **real connectors**
   parent→child. Recurse to leaf; create parents before children so connectors anchor.
+- **`mindmap`** → an organic radial idea map (distinct from `tree`'s strict hierarchy and `hub`'s
+  single ring). Build center-out:
+  1. **Root:** a prominent central node (`rounded_square` or `ellipse`, larger, `root.color`, bold
+     label) placed at the map center.
+  2. **Branches:** distribute the branches **radially** around the root — for a landscape board,
+     **balance them left/right** (alternate sides, stacking vertically) rather than a full 360°
+     ring; each branch a node in its own `color` at a radius from center.
+  3. **Sub-nodes:** fan each branch's `children` out **beyond** their branch node (further from
+     center, same side), spaced evenly.
+  4. **Links (two steps):** create **real connectors** with `arrow_type:"curve"` (root→branch,
+     then branch→child), then **color them in a second pass** — `create_connectors` has **no color
+     param**, so `update_widgets` each connector's `strokeColor` (+ `strokeWidth`≈3) to its
+     **branch color**. The branch color carrying the whole sub-tree is what makes it read as a
+     mind-map. Create every node before its connectors so they anchor (see the gantt deps note);
+     curved links read as organic — avoid orthogonal elbows here.
+  Keep depth ≤ 2–3 and ~6 branches for legibility; NOT `create_table`.
 - **`venn`** → 2–3 overlapping `ellipse` shapes with **semi-transparent** fills so the overlaps
   blend — use an **8-digit alpha hex** for `background_color` (e.g. the role color + `2E` ≈ 18%,
   verified to render), a saturated stroke per set, a set-label textbox outside each, and the

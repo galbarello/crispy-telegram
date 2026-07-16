@@ -400,6 +400,31 @@ the root node shape + recursively placed child node shapes, **real connectors** 
 lay children out below (or right of) their parent with even spacing. HTML: nested CSS/SVG tree
 with connector lines. Keep depth ≤ 3–4 for legibility.
 
+### mindmap — central topic with organic radiating branches
+```json
+{ "type": "mindmap",
+  "root": { "label": "AI-Native Collaboration", "color": "accent" },
+  "branches": [
+    { "label": "Enable Learning", "color": "primary",
+      "children": [ { "label": "Telemetry" }, { "label": "Experiment platform" } ] },
+    { "label": "Building Blocks", "color": "success",
+      "children": [ { "label": "Context service" }, { "label": "Widget SDK" } ] },
+    { "label": "Guardrails", "color": "warning",
+      "children": [ { "label": "Permissions" } ] }
+  ] }
+```
+A **brainstorm/mind map**: one central topic with branches radiating outward, each branch (and its
+sub-nodes) in a distinct **branch color**, connected by curved links. Use for an organic idea map
+rooted on one concept. Distinct from `tree` (a strict top-down/left-right hierarchy with
+orthogonal lines) and `hub` (a single ring of spokes with no sub-levels). Each branch carries a
+`color` that its whole sub-tree inherits; keep depth ≤ 2–3 and branch count ≤ ~6 for legibility.
+Rebuilder: a prominent central `root` node + branch nodes distributed **radially** (balanced
+left/right for a landscape board) with **curved connectors** (`arrow_type:"curve"`) in each
+branch's color; children fan out beyond their branch, connected in the same color; create parents
+before children so links anchor. HTML: a central node with curved branch-colored SVG paths
+radiating out, children fanning beyond each branch. See
+`../mural-image-rebuilder/references/block-catalog.md` for the full build recipe.
+
 ### venn — intersecting sets with a shared region
 ```json
 { "type": "venn", "overlapLabel": "Sweet spot",

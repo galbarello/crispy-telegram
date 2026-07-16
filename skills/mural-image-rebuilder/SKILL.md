@@ -62,7 +62,7 @@ for charts and metaphor blocks live in references — **load them only when you 
 | `banner` / `callout` | filled rectangle + centered/emphasis text. |
 | `gauge` | a gauge tile per item — linear meter (default, renders precisely) or radial dial; the numeric `value` label is the fidelity, not the arc. Recipe: `references/chart-fidelity.md`. |
 | `chart` (`bar`/`line`/`pie`) | build from primitives in a plot area (axis first, data, labels on top); the value labels are the fidelity, the shapes are the approximation. Recipe: `references/chart-fidelity.md` (+ `scripts/line_chart.py`, `scripts/pie_chart.py`). |
-| `comparison` `cycle` `chips` `pyramid` `funnel` `quadrant` `pillars` `hub` `timeline` `swimlane` `gantt` `tree` `venn` `spectrum` `decision` `rings` | metaphor blocks — one build recipe each in `references/block-catalog.md` (real connectors, area-nested cells, never `create_table`). |
+| `comparison` `cycle` `chips` `pyramid` `funnel` `quadrant` `pillars` `hub` `timeline` `swimlane` `gantt` `tree` `mindmap` `venn` `spectrum` `decision` `rings` | metaphor blocks — one build recipe each in `references/block-catalog.md` (real connectors, area-nested cells, never `create_table`). |
 | `icon` concept names | resolve via the icon-matching loop (or use a supplied `noun_project_id`) — `references/icon-matching.md`. |
 
 Then run Layer 6 verification exactly as for an image build. Trust the spec's text and counts

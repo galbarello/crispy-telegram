@@ -58,8 +58,11 @@ this?" and pick the metaphor, which maps to a `board-spec` block (schema in `boa
 - **Pyramid / layered stack** — layers where breadth = scope (vision→strategy→execution). → `pyramid`.
 - **Pillars / foundation** — columns that hold up a capstone ("these capabilities power X"). → `pillars`.
 - **Hub & spoke** — one core with satellites feeding it (a platform + its inputs). → `hub`.
-- **Tree / mind-map** — multi-level parent→child branching (org chart, work breakdown,
-  decomposition). → `tree`.
+- **Tree / hierarchy** — multi-level parent→child branching laid out as a strict top-down (or
+  left-right) org chart / work breakdown / decomposition. → `tree`.
+- **Mindmap** — a central topic with organic, radiating multi-level branches in branch colors (a
+  brainstorm map). Distinct from `tree` (strict hierarchy with orthogonal lines) and `hub` (a
+  single ring of spokes). → `mindmap`.
 - **Rings / onion / bullseye** — nested layers around a core (product→platform→ecosystem) or
   priority rings. → `rings`.
 

@@ -66,10 +66,11 @@ so it sits under the data), then plot points and join them.
     bug that shipped once (lines not linking the markers). The `h/2` terms are sub-pixel; the
     load-bearing part is anchoring at A, not the midpoint.
   - **Connectors (`connect_widgets` `arrow_type:"straight"` between consecutive markers):** quicker
-    and the segments stay attached when a marker moves, **but every connector draws an arrowhead
-    and uses the default connector color** — there is no option to remove the head or set the line
-    color. Use only when arrowheaded, default-colored segments are acceptable; otherwise prefer
-    the rotated rectangles.
+    and the segments stay attached when a marker moves. `create_connectors` takes **no** color,
+    so a fresh connector is default-colored with an arrowhead — but a **second pass** styles it:
+    `update_widgets` sets an arrow's `strokeColor`/`strokeWidth`, and its `startTipType`/`endTipType`
+    fields control the arrowheads. Rotated rectangles are still simpler for a plain colored line;
+    reach for connectors when you want the segment to stay attached as markers move.
 - **Multi-series:** repeat markers + line per series in its own color, and add a legend (color chip
   + series name), exactly as for grouped bars.
 - **Area / filled-line charts:** Mural has no vertex-polygon fill, so a true shaded area under the
