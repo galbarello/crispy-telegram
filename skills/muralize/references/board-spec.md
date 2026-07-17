@@ -19,8 +19,8 @@ maps to a rebuilder tool), **color-by-role** (no scattered hex).
     "pattern": "strategy-framework",
     "orientation": "portrait",
     "palette": {
-      "primary": "#4F46E5", "success": "#16A34A", "warning": "#CA8A04",
-      "danger": "#DC2626", "accent": "#7C3AED", "surface": "#F5F3FF", "ink": "#1F2937"
+      "primary": "#195AD7", "success": "#00C27A", "warning": "#FFAA00",
+      "danger": "#FF4B4B", "accent": "#8728E6", "surface": "#F0F0F0", "ink": "#202124"
     }
   },
   "sections": [ /* Section objects, in reading order */ ]
@@ -40,7 +40,9 @@ maps to a rebuilder tool), **color-by-role** (no scattered hex).
 - `pattern`: `timeline | matrix | dashboard | strategy-framework | mixed` (shared taxonomy).
 - `orientation`: `portrait | landscape` — hints the rebuilder's canvas/grid.
 - `palette`: semantic color **roles**. Blocks reference roles (e.g. `"color": "success"`),
-  never raw hex. One place to re-theme both outputs.
+  never raw hex. One place to re-theme both outputs. **Default baseline = the Mural brand
+  palette** (the hex above); the full role mapping + brand token library + inline CSS variables
+  are in `brand-palette.md`. Only override when the user asks for a different theme.
 
 **Header / hero — render identically in both outputs.** The header is `eyebrow` → `title` →
 `subtitle` → `tags`, top to bottom. The HTML and the Mural board both build it from these

@@ -75,7 +75,9 @@ follow `dataviz`.
 ### Layer 3 — Visual system
 - Define semantic color roles (`primary`, `success`, `warning`, `danger`, `surface`, …) once,
   in `meta.palette` — the HTML and the eventual Mural board both reference these roles, not
-  scattered hex. Use the `dataviz` palette as the default and validate contrast.
+  scattered hex. **Use the Mural brand palette as the default baseline** (role hex + brand token
+  library + inline CSS vars in `references/brand-palette.md`); only theme away from it when the
+  user asks. Validate contrast (`warning`/light tints take dark `ink` labels, never white body).
 - Plan icons per section (concept names).
 
 ### Layer 4 — Emit the `board-spec`
@@ -155,4 +157,6 @@ are exact. The infographic image is the human-facing artifact; the spec is the m
 ## References
 
 - `references/board-spec.md`: the shared board-spec JSON schema (the contract with the rebuilder).
+- `references/brand-palette.md`: the **default Mural brand palette** — role→hex baseline, the full
+  brand token library (for chart series/chips), and ready-to-inline CSS variables.
 - `references/infographic-patterns.md`: how to choose and lay out each infographic pattern from a brainstorm.
