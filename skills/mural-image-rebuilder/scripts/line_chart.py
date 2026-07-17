@@ -112,6 +112,13 @@ def build(spec):
     step = yax.get("step") or (ymax - ymin) / 4.0
 
     # --- geometry: explicit `plot`/`x` win, else derive from area + paddings ---
+    # Paddings default to values tuned for tall charts; on a COMPACT area they can exceed the
+    # height and invert the plot (baseline_y ends up above top_y), plotting the data upside-down.
+    # Fall back to proportional paddings when the fixed ones don't leave a positive-height plot.
+    tp, bp = style["plot_top_pad"], style["plot_bottom_pad"]
+    if area and tp + bp >= area["h"] - 20:
+        tp = max(26, round(area["h"] * 0.16))
+        bp = max(30, round(area["h"] * 0.22))
     plot = spec.get("plot")
     if plot is None:
         if not area:
@@ -119,8 +126,8 @@ def build(spec):
         plot = {
             "left": area["x"] + style["pad_left"],
             "right": area["x"] + area["w"] - style["pad_right"],
-            "baseline_y": area["y"] + area["h"] - style["plot_bottom_pad"],
-            "top_y": area["y"] + style["plot_top_pad"],
+            "baseline_y": area["y"] + area["h"] - bp,
+            "top_y": area["y"] + tp,
         }
     xspec = spec.get("x")
     if xspec is None:
@@ -218,15 +225,28 @@ def build(spec):
             "font_size": style["subtitle_font"], "font_color": style["subtitle_color"],
         }, spec))
 
-    # legend (swatch shapes + label textboxes), row under the title
+    # legend (swatch shapes + label textboxes), in the top band above the plot.
+    # Fit within the plot/area width: clamp the start x and the gap so the last entry
+    # (+ its ~90px label) stays inside the right edge instead of overflowing a narrow area.
     legend_shapes = []
-    legend_x0 = round(left + 350, 1) if not area else round(area["x"] + 459, 1)
-    legend_y = (area["y"] + style["legend_top_pad"]) if area else round(top_y - 60, 1)
     sw = style["legend_swatch"]
+    n_series = len(series)
+    right_edge = (area["x"] + area["w"] - style["pad_right"]) if area else right
+    gap = style["legend_gap"]
+    legend_x0 = round(left + 350, 1) if not area else round(area["x"] + 459, 1)
+    if legend_x0 + gap * (n_series - 1) + 90 > right_edge:
+        legend_x0 = round((area["x"] + style["pad_left"]) if area else left, 1)
+        if n_series > 1:
+            gap = max(70, min(gap, (right_edge - legend_x0 - 90) / (n_series - 1)))
+    # sit the legend row in the top band (between area top and the plot), never over the data
+    if area:
+        legend_y = round(max(area["y"] + 2, min(area["y"] + style["legend_top_pad"], top_y - sw - 4)), 1)
+    else:
+        legend_y = round(top_y - 60, 1)
     for j, s in enumerate(series):
-        lx = legend_x0 + style["legend_gap"] * j
+        lx = round(legend_x0 + gap * j, 1)
         legend_shapes.append(_with_pid({
-            "shape_type": "rounded_square", "x": round(lx, 1), "y": round(legend_y, 1),
+            "shape_type": "rounded_square", "x": lx, "y": legend_y,
             "width": sw, "height": sw, "background_color": s["color"],
             "stroke_color": s["color"], "stroke_size": 0,
         }, spec))

@@ -45,6 +45,15 @@ stickies for when the source literally depicts sticky notes.
   NOT a child unless you set `parent_id` (at creation) or call `move_widget_to_area`.
   Only true children move/group with the area.
 - Size areas generously and keep their top edge clear so the title stays legible.
+- **Areas auto-expand to fit their children — watch for occlusion.** A parented widget that
+  extends past an area's bounds makes the area **grow** to contain it; in particular a textbox
+  created **without an explicit `width` defaults to ~296px** and can silently push the area's
+  right/bottom edge outward. Because a later-created area renders its background **on top** of an
+  earlier one, an over-grown panel can then **occlude its neighbor** (seen for real: a sprint
+  panel's white card grew to 652px and hid the adjacent analytics column until it was shrunk).
+  Fixes: give parented textboxes an explicit `width`, and/or in Layer 6 reset each area's
+  `width`/`height` back to the intended bounds after filling it (`update_widgets`; areas don't
+  auto-shrink, and children may overflow the smaller bounds harmlessly).
 
 ## Mural "Apps" (Planner, forms, timer, …) — the `StructuredWidget` primitive
 
