@@ -1,7 +1,7 @@
 {
   "name": "mural-skills-pack",
-  "version": "1.1.0",
-  "description": "Four Mural skills: muralize (conversation -> infographic + board-spec), mural-image-rebuilder (image -> reconstructed Mural board), mural-local-driver (drive an open Mural board 100% locally through the browser, no API/MCP), and mural-retro-recycler (duplicate a retro/workshop board and empty it for the next cycle).",
+  "version": "1.2.0",
+  "description": "Five Mural skills: muralize (conversation -> infographic + board-spec), mural-image-rebuilder (image -> reconstructed Mural board), mural-local-driver (drive an open Mural board 100% locally through the browser, no API/MCP), mural-retro-recycler (duplicate a retro/workshop board and empty it for the next cycle), and mural-done-signal (a shared 'who's finished' readiness tracker that survives private mode).",
   "author": {
     "name": "galbarello",
     "email": "galbarello@mural.co"
@@ -11,6 +11,7 @@
     "./skills/muralize",
     "./skills/mural-image-rebuilder",
     "./skills/mural-local-driver",
-    "./skills/mural-retro-recycler"
+    "./skills/mural-retro-recycler",
+    "./skills/mural-done-signal"
   ]
 }

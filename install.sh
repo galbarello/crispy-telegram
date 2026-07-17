@@ -11,7 +11,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SRC="$SCRIPT_DIR/skills"
-SKILLS=(muralize mural-image-rebuilder mural-local-driver mural-retro-recycler)
+SKILLS=(muralize mural-image-rebuilder mural-local-driver mural-retro-recycler mural-done-signal)
 
 TARGET="$HOME/.claude/skills"
 MODE="install"
