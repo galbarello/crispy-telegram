@@ -1,9 +1,14 @@
 # Mural brand palette — the default baseline for muralize
 
-The **default** `meta.palette` for every muralize board is the **Mural brand palette**, pulled
-from mural.co's own design tokens. Use it unless the user asks for a different theme or the
-source content dictates other colors. Blocks still reference **roles** (`"color": "primary"`),
-never raw hex — this file just fixes what those roles resolve to.
+The **default** `meta.palette` for every muralize board (`meta.theme: "brand"`) is the **Mural
+brand palette**, pulled from mural.co's own design tokens. Use it unless the user asks for a
+different theme or the source content dictates other colors. Blocks still reference **roles**
+(`"color": "primary"`), never raw hex — this file just fixes what those roles resolve to.
+
+> **The other theme:** for dashboards / data-heavy boards there is a second stylesheet — the Mural
+> UI-Toolkit **data-viz** theme (`meta.theme: "product"`, see `dataviz-palette.md`): a muted 9-hue
+> categorical scale with accessibility/type/legend rules. It is **not** the default; muralize
+> prompts before switching (SKILL.md Layer 3). Never mix the two on one board.
 
 ## Role baseline (what each semantic role resolves to)
 

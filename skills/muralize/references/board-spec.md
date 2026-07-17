@@ -18,6 +18,7 @@ maps to a rebuilder tool), **color-by-role** (no scattered hex).
     "tags": ["100% local", "no API", "hybrid: probe → UI"],
     "pattern": "strategy-framework",
     "orientation": "portrait",
+    "theme": "brand",
     "palette": {
       "primary": "#195AD7", "success": "#00C27A", "warning": "#FFAA00",
       "danger": "#FF4B4B", "accent": "#8728E6", "surface": "#F0F0F0", "ink": "#202124"
@@ -39,10 +40,15 @@ maps to a rebuilder tool), **color-by-role** (no scattered hex).
   belongs here so the board matches.
 - `pattern`: `timeline | matrix | dashboard | strategy-framework | mixed` (shared taxonomy).
 - `orientation`: `portrait | landscape` — hints the rebuilder's canvas/grid.
+- `theme` *(optional, default `"brand"`)*: which stylesheet the `palette` roles resolve from —
+  `"brand"` (mural.co marketing, `brand-palette.md`) or `"product"` (Mural UI-Toolkit data-viz,
+  `dataviz-palette.md`). Pick per the SKILL.md Layer-3 selection rule (default `brand`; prompt the
+  user for dashboards/data-viz). Both outputs read the same `theme`, so they never drift.
 - `palette`: semantic color **roles**. Blocks reference roles (e.g. `"color": "success"`),
-  never raw hex. One place to re-theme both outputs. **Default baseline = the Mural brand
-  palette** (the hex above); the full role mapping + brand token library + inline CSS variables
-  are in `brand-palette.md`. Only override when the user asks for a different theme.
+  never raw hex. One place to re-theme both outputs. The hex must match the selected `theme`'s
+  reference file — **default = the Mural brand palette** (the hex above); for `theme:"product"`
+  resolve from `dataviz-palette.md` (`primary`→Blueberry `#5B83D2`, `accent`→Grape `#846CE0`,
+  system roles unchanged, `surface`→`#F7F7F7`).
 
 **Header / hero — render identically in both outputs.** The header is `eyebrow` → `title` →
 `subtitle` → `tags`, top to bottom. The HTML and the Mural board both build it from these

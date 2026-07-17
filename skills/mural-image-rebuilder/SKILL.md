@@ -38,7 +38,10 @@ schema in `../muralize/references/board-spec.md`) instead of (or alongside) an i
 counts, palette roles, and primitive-aligned blocks, so there is no OCR/vision loss.
 
 Mapping spec → this skill's primitives:
-- `meta.palette` roles → resolve to hex once; every block's `color`/`fill` references a role.
+- `meta.palette` roles → resolve to hex once; every block's `color`/`fill` references a role. If
+  `meta.theme` is `"product"`, resolve roles from the muralize `dataviz-palette.md` (Blueberry
+  primary, Grape accent, system success/warning/danger, `#F7F7F7` surface) instead of the default
+  brand palette, and assign data-series colors from that file's categorical "60" scale in order.
 - `meta` header/hero → build the whole header, top to bottom, so it matches the infographic:
   `meta.eyebrow` → a small textbox in the accent role (~13px, letter-spaced) placed **above**
   the title; `meta.title` → a `title` widget **in the spec's exact casing** (never force

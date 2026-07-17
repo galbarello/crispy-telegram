@@ -73,11 +73,24 @@ follow `dataviz`.
   it `"draft": true` or leave a `"gap"` note rather than fabricating. Surface gaps to the user.
 
 ### Layer 3 — Visual system
+- **Pick the theme first** and record it in `meta.theme`. Two themes ship:
+  - `brand` (**default**) — the mural.co marketing palette (`references/brand-palette.md`).
+  - `product` — the Mural UI-Toolkit *data-visualization* palette (`references/dataviz-palette.md`):
+    a muted 9-hue categorical scale + accessibility/type/legend/section rules, for dashboards and
+    data-heavy boards.
+  - **Selection rule:** default to `brand`. When the board is clearly a dashboard/analytics/
+    data-viz view, or the user says "product / UI Toolkit / data-viz look", **prompt the user**
+    ("Brand (mural.co, default) or Product data-viz theme?") before emitting the spec — don't
+    silently switch. Never mix the two on one board.
 - Define semantic color roles (`primary`, `success`, `warning`, `danger`, `surface`, …) once,
   in `meta.palette` — the HTML and the eventual Mural board both reference these roles, not
-  scattered hex. **Use the Mural brand palette as the default baseline** (role hex + brand token
-  library + inline CSS vars in `references/brand-palette.md`); only theme away from it when the
-  user asks. Validate contrast (`warning`/light tints take dark `ink` labels, never white body).
+  scattered hex. Resolve the roles from the **selected theme's** reference file. Validate contrast
+  (`warning`/light tints take dark `ink` labels, never white body; product theme targets ≥3:1 for
+  non-text marks, ≥4.5:1 for text).
+- Under the `product` theme, also honor its non-color rules: assign the **categorical scale in
+  order** for data series, keep `success`/`warning`/`danger` as **system** colors (never as data
+  marks), left-align sentence-case labels, `tabular-nums` with comma-thousands (no `k`/`m`, no
+  superscript `%`/`$`), and prefer **spacing + hairline dividers over containers**.
 - Plan icons per section (concept names).
 
 ### Layer 4 — Emit the `board-spec`
@@ -170,8 +183,11 @@ are exact. The infographic image is the human-facing artifact; the spec is the m
 ## References
 
 - `references/board-spec.md`: the shared board-spec JSON schema (the contract with the rebuilder).
-- `references/brand-palette.md`: the **default Mural brand palette** — role→hex baseline, the full
-  brand token library (for chart series/chips), and ready-to-inline CSS variables.
+- `references/brand-palette.md`: the **default** (`brand`) Mural brand palette — role→hex baseline,
+  the full brand token library (for chart series/chips), and ready-to-inline CSS variables.
+- `references/dataviz-palette.md`: the alternative (`product`) Mural UI-Toolkit **data-viz** theme —
+  the muted 9-hue categorical scale (+ full 10–100 ladders), role baseline, CSS vars, and the
+  toolkit's type/metric/legend/section/accessibility rules. Prompt before using; default is `brand`.
 - `references/html-quality.md`: how to make the **HTML** infographic a first-class, productized
   artifact — design baseline (type/spacing/elevation scales), **real-SVG chart recipes** (donut,
   gauge arc, area line, bars, KPI tiles), density/layout, iconography, and a polish checklist.
