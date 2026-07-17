@@ -111,6 +111,7 @@ These MCP tools exist and are preferred — use them:
 | Icons, logos, pictograms | `search_icons` → inspect previews → `create_icons`, tinted to match; one strategy per board (see `references/icon-matching.md`) | substitute mismatched emoji for the source's custom icons, or mix real icons and emoji across the board |
 | KPI tiles / cards | a shape (created first, as background) with text on top, or a titled area | a sticky note |
 | Literal sticky notes in the source | `create_stickies` | anything else |
+| A Mural **App** / embedded widget (Planner, form, timer…) | rebuild its *content* as native primitives — Planner → `gantt`/`swimlane`/`table` (see `references/widget-selection.md`) | expect an app-create tool — there is none; Mural "Apps" aren't in the MCP widget surface |
 
 Fall back to shapes + textboxes only when the native primitive genuinely can't express
 what the source needs — and say so when you do.

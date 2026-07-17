@@ -101,6 +101,20 @@ Full catalog with internals-path, UI-path, and per-op verification in
 Discover Mural's **current** keyboard shortcuts from its in-app `?` help panel rather than
 hardcoding them — they change over time.
 
+### Native Apps (Planner, forms, …) — UI-insert only, treat as opaque
+
+Mural's **Apps** (Planner, text form, timer, …) are embedded widgets the Mural MCP cannot create
+or configure. The **only** way to place one is Mural's browser UI, which this driver can drive:
+open the **Apps** panel from the toolbar → pick the app (e.g. **Planner**) → click to drop it on
+the canvas. Once placed, it reads back through the MCP as a `murally.widget.StructuredWidget`
+(its `structuredWidgetKey` names the app — the Planner's is `"planner"`), and you **can** then
+position / size / reparent / lock it via `update_widgets`. But the app's internal data is
+**opaque** — you can't reliably populate or read its contents through the MCP or DOM probing, so
+don't try to fill it programmatically. When the goal is
+a *populated, reproducible* planner, rebuild the content with native primitives
+(`gantt`/`swimlane`/`table`) per `../mural-image-rebuilder/references/widget-selection.md`; drop the
+native App only when the user specifically wants the interactive Mural app itself.
+
 ## Use as a rebuilder backend
 
 This skill is the **local execution backend** for `mural-image-rebuilder`. When a writable

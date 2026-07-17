@@ -16,6 +16,7 @@ prevents that. All tools listed here exist in the Mural MCP.
 | KPI tile / card | shape background (created first) + textbox on top, or a titled `area` | Not a sticky. |
 | Icon / logo / pictogram | `search_icons` → `create_icons` | Pick ONE strategy per board — all real icons, or accept emoji-in-textbox as an explicit low-fidelity fallback. Don't mix. |
 | Literal sticky note in the source | `create_stickies` | Only when the source actually shows sticky notes. |
+| A Mural **App / embedded widget** (Planner, text form, timer, …) | rebuild its *content* as native primitives — a **Planner → `gantt`** (schedule) / `swimlane` (roadmap) / `table` (task grid) | Mural "Apps" are **not** MCP-creatable (no `create_app`; not in the widget-type registry). See the section below. |
 | Bulk restyle after building | `update_widgets` | Change fill/stroke/font across many widgets without recreating them. |
 | Read back / verify | `get_viewport_screenshot`, `get_canvas_image`, `get_widgets_screenshot` | Required in Layer 6. |
 
@@ -44,6 +45,43 @@ stickies for when the source literally depicts sticky notes.
   NOT a child unless you set `parent_id` (at creation) or call `move_widget_to_area`.
   Only true children move/group with the area.
 - Size areas generously and keep their top edge clear so the title stays legible.
+
+## Mural "Apps" (Planner, forms, timer, …) — the `StructuredWidget` primitive
+
+> **Strategy decision (settled):** for building planner/schedule content, **`gantt` is the
+> canonical strategy** — it's the only one that's programmatic, populated, verifiable, and
+> reproducible. The native Planner App is a **UI-only, user-owned** option (drop an empty shell
+> via `mural-local-driver` only when the user explicitly wants the live Mural app to fill in
+> themselves); it is **never an automated build target**, because its contents are opaque to the
+> MCP. Don't re-litigate this per run.
+
+Mural's **Apps** panel drops *embedded app widgets* (Planner, text form, timer, pachinko llama, …).
+Inspected empirically (a dropped **Planner**): an App is a single widget of type
+**`murally.widget.StructuredWidget`** identified by a **`structuredWidgetKey`** naming the app
+(the Planner's key is `"planner"`). What the MCP can and can't do with one:
+
+**CAN — read + arrange:**
+- **See/identify it:** it appears in `get_canvas_overview` / `list_widgets` / `get_widget_by_id`
+  as `murally.widget.StructuredWidget` with its `structuredWidgetKey`, position, and size — so you
+  can detect an App and tell *which* one it is.
+- **Arrange it** via `update_widgets` (verified live): `x`, `y`, `width`, `height`, `rotation`,
+  `hidden`, `locked`, `parentId` (drop it into an area), `title`, `stackingOrder`. So you can
+  place, size, reparent, lock, and layer a Planner like any widget.
+- **Delete it** with `delete_widget`.
+
+**CANNOT — content is opaque:**
+- **Create one** — there is no `create_*` tool for `StructuredWidget`; only Mural's UI inserts an
+  App.
+- **Read or write its data** — `text_content` is empty, there is **no content/data field**, and
+  `get_widgets_screenshot` renders it as a **blank frame**. Its rows/tasks are opaque to the MCP.
+
+**Primitives / recipe:**
+- *Insert* a native Planner → **UI only** (`mural-local-driver`: Apps panel → Planner).
+- *Position / size / reparent / lock* an existing Planner → `update_widgets` (geometry + `parentId`).
+- *Reproduce a Planner's content* — the usual goal, since its data is opaque and it isn't creatable
+  → build from primitives: **`gantt`** (schedule with durations/dependencies), `swimlane`
+  (now-next-later roadmap), or `table`/area+stickies (task grid). This is what `muralize` already
+  emits for a "project plan / delivery schedule" (→ `gantt`) — fully MCP-buildable and reproducible.
 
 ## When to fall back to shapes + textboxes
 
