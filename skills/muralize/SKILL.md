@@ -100,6 +100,14 @@ follow `dataviz`.
 ### Layer 5 — Compose the infographic (HTML) from the spec
 - Render the spec to a self-contained HTML page (inline CSS, embedded SVG icons, no external
   assets — the Artifact tool's CSP forbids remote resources). Theme-aware (light/dark).
+- **Treat the HTML as a first-class, productized artifact — NOT a preview of the Mural board.**
+  It runs in a browser, so it is **not** bound by Mural-primitive limits: render **real** SVG
+  donuts/gauge arcs, area-filled line charts, gradients, and shadows (the board *approximates*
+  these — the HTML must not). Aim for **dashboard-grade density**, a systematic type/spacing/
+  elevation scale, **one** consistent icon set, and `tabular-nums` on all data. This is the main
+  lever for closing the quality gap with hand-made/AI-image infographics. Follow
+  `references/html-quality.md` (design baseline + real-SVG chart recipes + polish checklist) and
+  the `artifact-design` skill.
 - Render any `table` block with **per-column header colors + column tints** from each
   `columns[].color` (saturated header cell, light column body), `chips` as individual pills in a
   row, and the leading column's `badge` + `icon` — the same coloring/structure the Mural board
@@ -128,7 +136,12 @@ follow `dataviz`.
   pole labels + markers; `decision` → an SVG flowchart (terminator/diamond/rectangle nodes +
   labeled edges); `rings` → nested SVG circles. Drive every one from the spec fields — never
   hardcode geometry.
-- Publish with the Artifact tool. This is the shareable infographic.
+- Publish with the Artifact tool (the shareable link) **and save a standalone local copy** so the
+  page persists beyond the session and can be served offline: write it to the project's
+  `muralize-output/pages/<slug>.html` **with a full `<!doctype html><html><head>…</head><body>`
+  wrapper** (the Artifact tool adds that wrapper at publish time, but a locally-served file needs
+  it itself), then add a card for it to `muralize-output/index.html` (the gallery). Create the
+  folder if absent. Serve with `python3 -m http.server` from `muralize-output/`.
 
 ### Layer 6 — Verify & hand off
 - Self-check: every harvested theme is represented; section count and reading order match
@@ -159,4 +172,7 @@ are exact. The infographic image is the human-facing artifact; the spec is the m
 - `references/board-spec.md`: the shared board-spec JSON schema (the contract with the rebuilder).
 - `references/brand-palette.md`: the **default Mural brand palette** — role→hex baseline, the full
   brand token library (for chart series/chips), and ready-to-inline CSS variables.
+- `references/html-quality.md`: how to make the **HTML** infographic a first-class, productized
+  artifact — design baseline (type/spacing/elevation scales), **real-SVG chart recipes** (donut,
+  gauge arc, area line, bars, KPI tiles), density/layout, iconography, and a polish checklist.
 - `references/infographic-patterns.md`: how to choose and lay out each infographic pattern from a brainstorm.
