@@ -1,0 +1,24 @@
+{
+  "_comment": "concept -> Noun Project id map of VERIFIED icons. Consult this BEFORE search_icons (see icon-matching.md 'Matching loop' step 0). muralize pre-resolves these into the board-spec's icon.noun_project_id so the rebuilder never searches. Add an entry only after you have visually verified a clean match; keep ids as strings.",
+  "icons": {
+    "target":          { "noun_project_id": "7002",    "aliases": ["bullseye", "goal", "mission"] },
+    "cube":            { "noun_project_id": "25152",   "aliases": ["box", "package", "capability"] },
+    "star":            { "noun_project_id": "5603",    "aliases": ["favorite", "north-star"] },
+    "lightbulb":       { "noun_project_id": "762",     "aliases": ["idea", "insight"] },
+    "magnifying-glass":{ "noun_project_id": "9873",    "aliases": ["search", "magnify", "discover", "assumption"] },
+    "flask":           { "noun_project_id": "8372205", "aliases": ["experiment", "lab", "test"] },
+    "analytics":       { "noun_project_id": "32220",   "aliases": ["chart", "bar-chart", "dashboard", "evidence"], "note": "search 'analytics dashboard' NOT 'bar chart' (bar chart returns a beer glass)" },
+    "rocket":          { "noun_project_id": "36778",   "aliases": ["launch", "scale", "growth"] },
+    "trophy":          { "noun_project_id": "2362859", "aliases": ["award", "win", "commitment"] },
+    "gauge":           { "noun_project_id": "1686371", "aliases": ["speedometer", "velocity", "speed"] },
+    "layers":          { "noun_project_id": "1209962", "aliases": ["stacked-blocks", "blocks", "leverage", "platform"] },
+    "recycle":         { "noun_project_id": "60",      "aliases": ["reuse", "reusable"] },
+    "steps-up":        { "noun_project_id": "3910",    "aliases": ["stairs", "levels", "maturity", "advancing", "evolution"] },
+    "refresh":         { "noun_project_id": "72176",   "aliases": ["rotate", "reload", "agility", "change"] },
+    "person":          { "noun_project_id": "7078",    "aliases": ["user", "people", "customer"] },
+    "camera":          { "noun_project_id": "76991",   "aliases": ["photo"] },
+    "gears":           { "noun_project_id": "7695754", "aliases": ["automation", "settings", "process"] },
+    "cloud":           { "noun_project_id": "294810",  "aliases": ["storage"], "note": "plain cloud; NOT 30027 (that is a hail cloud)" },
+    "mesh-network":    { "noun_project_id": "3794128", "aliases": ["nodes", "graph", "connections"] }
+  }
+}

@@ -206,6 +206,31 @@ Two hard rules learned from real builds:
   children, so the section moves and groups as a unit. Newer widgets render on top, so
   create backgrounds/areas before their contents.
 
+## Maximal batching — the biggest speed lever
+
+Every MCP call is a serialized round-trip through the browser bridge, so a build's wall-clock is
+dominated by **call count**, not widget count. A board that took ~14 separate `create_*` calls
+(shapes split 4-5 ways, textboxes ~6 ways) should take ~6 — **one call per widget TYPE.**
+
+- **Collect every widget of a type across the whole board into ONE list and issue one call per
+  type**, in fixed order: `create_areas` → `create_titles` → `create_shapes` → `create_icons` →
+  `create_textboxes` → `create_connectors` (connectors last, after endpoint ids exist). Do NOT
+  split a type into per-section or per-family calls.
+- **Order each list backgrounds-first.** Within a single `create_*` call, **list position = paint
+  order — the last item renders on top** (validated: rects created `[red, green, blue]` in one
+  call landed blue-on-top). So fills/scaffolds/tints/chip-fills go before their labels, and chart
+  segments before markers, all in the *same* call — no separate background vs foreground calls.
+- **Size cap ~80 widgets/call.** Above that, split by section (a size concession, not a z-order
+  one) and re-run the Layer-6 dedup check (the double-apply bug scales with batch size).
+- **Don't trust the response array order.** The returned `shapes`/ids array is not guaranteed to
+  match input order (observed reversed). Map each returned id to its widget by the returned
+  `position_x`/`position_y`, not by array index — critical when wiring connectors to endpoints.
+- **Cleanup/reflow in one batched `update_widgets`** (idempotent — safe from the double-apply
+  bug), never a second `create_*`.
+
+This composes with the layers below: still *plan* in layers (macro layout → families →
+connectors → text), but *emit* each layer's widgets as one batched call per type.
+
 ## Layer-by-layer reconstruction checklist
 
 Rebuild the source in layers. Do not jump ahead until the current layer is stable.
@@ -297,6 +322,13 @@ text, and never rebuild on a board someone else is editing.
 A reconstruction you never looked at is not finished. This step is mandatory. Keep verification
 cheap per the **Token discipline** policy above (checkpoint screenshots, targeted id sets,
 geometry diffs over pixels).
+
+**Verification budget (default): 0 full-board screenshots mid-build — verify geometry with
+`list_widgets` bbox diffs and content with `list_widgets` `text_content`; take exactly ONE
+`get_canvas_image` at the very end for the final source/HTML compare.** Only reach for a
+mid-build `get_widgets_screenshot` (small id set, `max_output_dimension` ~1024) when a value must
+actually be eyeballed. This is the single biggest verification-cost cut — full-board screenshots
+were overused in practice.
 
 - Read the canvas back with `get_viewport_screenshot` (or `get_canvas_image` /
   `get_widgets_screenshot`) — once after the macro layout, and again at the end.
