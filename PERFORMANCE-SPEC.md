@@ -63,23 +63,36 @@ rebuilder searches for nothing known.
 `get_canvas_image` at the end**.
 → `skills/mural-image-rebuilder/SKILL.md` (Layer 6), `references/rebuild-workflow.md`.
 
-## Sprint 2+ (deferred — documented, not built)
+## Sprint 2 — `scripts/compile_board.py` (Phase A SHIPPED)
 
-**`scripts/compile_board.py`** — deterministic board-spec → batched create-payload compiler,
-mirroring `line_chart.py`'s output contract (one JSON object keyed by create tool, backgrounds-
-first). Reuses `line_chart.py` / `pie_chart.py` for `chart` blocks (add a `bar` branch).
+Deterministic board-spec → batched create-payload compiler, mirroring `line_chart.py`'s output
+contract (one JSON object keyed by create tool, backgrounds-first). Reuses `line_chart.py` /
+`pie_chart.py` for `chart` blocks via their importable `build()` cores.
 
-- **Connector handshake:** compiler assigns each widget a stable logical `_key` and emits
-  `connectors` referencing keys; the build wrapper maps `_key → returned id` **by position**
-  (never by array index — see the response-order finding) after each create batch, then issues
-  one `create_connectors` call.
-- **Phase A (M):** `meta` header, `section`, `banner`, `callout`, `cards`, `metrics`, `chips`,
-  and `chart` (via the scripts). High-frequency, pure geometry.
-- **Phase B (M):** `table` (reuse `table-fidelity.md`), `flow`/`comparison`.
-- **Phase C (L, demand-driven):** metaphor blocks (quadrant, venn, mindmap, tree, gantt, …).
-  Do NOT build speculatively — these are where the model's fidelity judgment matters most.
-- **Graceful degradation:** unknown block types pass through as `manual_blocks`; the model builds
-  those. Treat compiler output as a tweakable starting payload, not a frozen board.
+- **CLI:** `python3 compile_board.py <spec.json> --palette <palette.json> --icons references/icon-registry.json`
+  (spec also accepted on stdin). Output keyed `create_areas/create_titles/create_shapes/
+  create_icons/create_textboxes/connectors/manual_blocks/warnings`; every widget carries a `_key`,
+  and content nested in a section frame also carries a `_parent` (top-level items — the `meta.*`
+  header and the area frames — have no `_parent`).
+- **Connector handshake:** each widget gets a stable logical `_key`; `connectors` reference keys;
+  the build wrapper maps `_key → returned id` **by `position_x/y`** (never by array index — see the
+  response-order finding) after each create batch, then issues one `create_connectors` call. (Phase
+  A emits no connectors; infra present for Phase B.)
+- **Phase A — SHIPPED:** `meta` header, `section`, `banner`, `callout`, `cards`, `metrics`,
+  `chips`, and `chart` (line/pie via the scripts). Validated on an 8-section sample (99 widgets,
+  unique keys, non-overlapping areas) and a 6-section retest (icons resolved from the registry,
+  `table` → `manual_blocks`).
+- **Phase B (deferred, M):** `table` (reuse `table-fidelity.md`), `flow`/`comparison`, `bar`
+  charts (no reusable builder yet).
+- **Phase C (deferred, L, demand-driven):** metaphor blocks (quadrant, venn, mindmap, tree, gantt,
+  …) — where the model's fidelity judgment matters most; do NOT build speculatively.
+- **Graceful degradation:** uncovered block types pass through as `manual_blocks` (with `{section,
+  type,reason,box}`); unresolved icons drop to `warnings[]` without failing the block. Treat
+  compiler output as a tweakable starting payload, not a frozen board.
+- **Known limitation:** height estimation is heuristic (char-count wrapping, fixed tile/chip
+  pitch), so long body text can overflow a tile — spot-check compiled geometry once in Layer 6.
+  A section whose content uses an unexpected shape (e.g. a `blocks` list instead of the schema's
+  singular `block`) is silently skipped — validate specs against `board-spec.md`.
 
 ## Risks
 

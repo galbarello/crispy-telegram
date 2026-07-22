@@ -34,8 +34,9 @@ so any dense or precise arrangement scatters. The nudge is reported in the creat
 response as `requested_x`/`requested_y` differing from the final position — scan for it.
 
 **Rule:** never use stickies for grids, table cells, chips, tight rows, or precise
-layouts. Use `create_table`, textboxes (with `background_color`), or shapes. Reserve
-stickies for when the source literally depicts sticky notes.
+layouts. Use textboxes (with `background_color`) or shapes — **never `create_table`**, whose
+cells render empty here (see the routing table above). Reserve stickies for when the source
+literally depicts sticky notes.
 
 ## Stacking and containment
 
@@ -94,9 +95,10 @@ Inspected empirically (a dropped **Planner**): an App is a single widget of type
 
 ## When to fall back to shapes + textboxes
 
-Only when the native primitive genuinely can't express the source (e.g. a table cell
-needs styling `create_table` doesn't support). When you do, say so explicitly in the
-build notes so it's a conscious tradeoff, not an accident.
+Only when the native primitive genuinely can't express the source. When you do, say so
+explicitly in the build notes so it's a conscious tradeoff, not an accident. (Matrices/tables
+are the standard case — they are always built from area-nested chips + textboxes here, since
+`create_table` renders empty; that's the routing default, not a fallback.)
 
 ## Typography — Proxima Nova is the only face
 
