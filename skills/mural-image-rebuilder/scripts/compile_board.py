@@ -343,6 +343,16 @@ def _cell_height(cell, col_w):
     return 2 * CELL_PAD + lines * LINE_H
 
 
+def _row_cells(row):
+    """A table row's cells, accepting BOTH shapes: the documented {"cells":[...]} object
+    and the natural bare list [cell, cell, ...]. Anything else yields no cells."""
+    if isinstance(row, dict):
+        return row.get("cells") or []
+    if isinstance(row, list):
+        return row
+    return []
+
+
 def _table_layout(block, inner_w):
     """Return (col_w, header_h, row_heights[], total_height) for a table block at inner_w."""
     cols = block.get("columns", []) or []
@@ -351,7 +361,7 @@ def _table_layout(block, inner_w):
     rows = block.get("rows", []) or []
     row_hs = []
     for row in rows:
-        cells = row.get("cells", []) if isinstance(row, dict) else []
+        cells = _row_cells(row)
         h = TABLE_ROW_MIN
         for ci in range(len(cols)):
             cell = cells[ci] if ci < len(cells) else {}
@@ -715,8 +725,10 @@ def build_table(out, sid, block, ix, iy, iw, ih, pal, area_key, icon_index):
 
     # 3) row content — one row baseline per row, cells routed by type.
     ry = body_y
+    ncells_total = 0
     for ri, row in enumerate(rows):
-        cells = row.get("cells", []) if isinstance(row, dict) else []
+        cells = _row_cells(row)
+        ncells_total += len(cells)
         rh = row_hs[ri]
         for ci in range(ncols):
             cell = cells[ci] if ci < len(cells) else {}
@@ -724,6 +736,11 @@ def build_table(out, sid, block, ix, iy, iw, ih, pal, area_key, icon_index):
             _table_cell(out, sid, ri, ci, cell, cx, ry, col_w, rh, pal, col_hex[ci],
                         area_key, icon_index, leading=(ci == 0))
         ry += rh
+
+    # Guard the silent-empty-table trap: headers + tints rendered but no cell ever did.
+    if rows and ncells_total == 0:
+        out.warn("section %s: table rows produced no cells — each row must be a list "
+                 "[cell, ...] or a {\"cells\": [...]} object (headers/tints built, bodies empty)" % sid)
 
 
 # ---------------------------------------------------------------------------

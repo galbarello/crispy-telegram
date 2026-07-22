@@ -101,7 +101,7 @@ glyph arrows.
     { "label": "PRIMARY KPIS",            "color": "warning" }
   ],
   "rows": [
-    { "cells": [
+    { "cells": [    /* a bare list [cell, cell, ...] is also accepted for a row */
       { "text": "Understand", "badge": "1", "icon": "telescope", "color": "accent" },
       { "bullets": ["What problems exist?", "What's changing with AI?"] },
       { "chips": ["Customer interviews", "Journey mapping"] },
