@@ -95,6 +95,10 @@ Chart-series order (product theme): `--dv-1` → `--dv-2` → … → `--dv-9`, 
 **Type treatments**
 - Titles/hero: a serif display face is *page-titles only* (the toolkit uses "STK Bureau"); since the
   webfont isn't embeddable, approximate with the artifact's display face and keep it to the title.
+  **This serif is HTML-only.** The Mural board renders *only* Proxima Nova — an unknown `fontFamily`
+  is stored but silently falls back (see mural-image-rebuilder's font note), so a themed board keeps
+  its title in Proxima Nova and leans on the sentence-case + left-align rules below instead. Don't
+  promise a serif on the board; only the HTML render can honor it.
 - Everything else — metrics, data points, axis/legend/chart labels — a **sans-serif** for number
   legibility (the toolkit uses "ABC Social"). **Left-align**, **sentence case**, always.
 - **Numbers:** comma for thousands (`1,256`); **no** superscript for `%`/`$`; **no** `k`/`m`
@@ -111,6 +115,22 @@ by chart type (top/right for lines, under the plot for bars).
 noise: **2px** divider between major sections, **1px** within a section/component. Use containers
 *sparingly* to call out a related metric group. Keep consistent vertical rhythm; use **bold** inline
 text (not boxes) to create hierarchy in simple bulleted lists.
+
+## Re-theming an existing board in place (brand ⇄ product)
+
+You can retheme an already-built Mural board without rebuilding it — `update_widgets` recolors are
+**idempotent and safe from the create double-apply bug**, so batch them freely. Recipe:
+
+- **Map the categorical families in ORDER** to the data-viz scale (family 1 → Truffle, 2 → Mint,
+  3 → Dragonfruit, …), and apply the *same* mapping consistently across every place a family
+  appears (columns, flow steps, metrics) so the board reads as one system.
+- **Fills/marks use the 60 step; colored TEXT uses the 70–90 step** for AA contrast (the 60 hues
+  pass ≥3:1 as marks but fail as text). Set `background`+`strokeColor` on shapes, `color` on text.
+- **Keep system colors as system meaning** — a "don't/negative" marker stays `danger`, an
+  "our choice/positive" highlight stays `success`; don't repaint them into categorical hues.
+- **Icons must be delete + recreate** (stickers can't be `update_widgets`-ed) — recover each
+  `noun_project_id` from `get_widget_by_id.name`, then `create_icons` in the new tint.
+- Verify the whole board after; the widget count must be unchanged (deletes == recreates).
 
 ## Notes
 

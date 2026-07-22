@@ -165,6 +165,11 @@ follow `dataviz`.
 ## Authoring rules
 
 - **One source of truth.** Generate the HTML from the spec, not separately — or they drift.
+- **Manual board edits re-open the drift.** After the HTML is generated, any hand-edit to the
+  Mural board (recolor, re-case, add/remove widgets) desyncs the two outputs — they're no longer
+  from one spec. Fold the change back into the `board-spec` and regenerate the HTML (or apply the
+  same edit to both). Theme is a spec-level choice: recoloring a board to the `product` palette
+  means the HTML must be regenerated under `meta.theme:"product"` too, or the pair diverges.
 - **One pattern per infographic** (embed secondary patterns as sub-blocks).
 - **Faithful text, flagged gaps.** Condense; don't fabricate.
 - **Semantic color roles**, defined once.

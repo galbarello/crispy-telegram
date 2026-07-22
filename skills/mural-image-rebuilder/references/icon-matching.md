@@ -11,6 +11,11 @@ mismatched emoji — emoji read as noticeably lower fidelity.
 - **Emoji fallback (fast, low fidelity):** a single emoji approach for all icons. Use only
   when icons are incidental or search returns nothing usable — and say you're doing it.
 - **Never mix** real icons and emoji on the same board (the routing table already says this).
+- **Icons on a repeated family are all-or-none.** If one item in a repeated family (KPI/metric
+  tiles, cards, steps) gets an icon, they all must — the same rule as "tint all cells or none."
+  A build that deprioritizes icons tends to skip one family (seen for real: the outcome-metric
+  tiles were left icon-less while the header and flow nodes had icons, which reads as unfinished).
+  When you finish, scan every repeated family and confirm the icon count matches the item count.
 
 ## Matching loop (real icons)
 
@@ -80,6 +85,14 @@ printer. Always inspect previews and re-query with synonyms. Replacements that d
 as a starting shortlist: **camera** `76991`, **gears/automation** `7695754`, **plain cloud**
 `294810`, **mesh-network nodes** `3794128`. Never ship an icon whose meaning differs from the
 source just because the search surfaced it.
+
+More vetted ids (verified good on a strategy-infographic build): **target/bullseye** `7002`,
+**cube/box** `25152`, **star** `5603`, **lightbulb** `762`, **magnifying glass** `9873`,
+**flask** `8372205`, **analytics/chart** `32220` (search "analytics dashboard", **not** "bar
+chart" — that returns a beer glass), **rocket** `36778`, **trophy** `2362859`, **gauge/
+speedometer** `1686371`, **stacked layers/blocks** `1209962`, **recycle** `60`, **steps-up /
+advancing levels** `3910` (good for "maturity/level" metrics), **refresh/rotate** `72176`
+(good for "agility/change"), **user/person** `7078`.
 
 ## Cost discipline
 

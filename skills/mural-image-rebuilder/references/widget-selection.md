@@ -97,3 +97,11 @@ Inspected empirically (a dropped **Planner**): an App is a single widget of type
 Only when the native primitive genuinely can't express the source (e.g. a table cell
 needs styling `create_table` doesn't support). When you do, say so explicitly in the
 build notes so it's a conscious tradeoff, not an accident.
+
+## Typography — Proxima Nova is the only face
+
+The canvas renders **only Proxima Nova**. `update_widgets` will accept and store any
+`fontFamily` (returning `success:true`), but an unrecognized family silently falls back to the
+default — so a serif or any custom face is **not achievable on a Mural board** via the MCP (see
+the SKILL "renders ONLY Proxima Nova" note). Reproduce the source's type hierarchy with size,
+weight, and casing, not the typeface. A serif belongs only in an HTML render, never the board.

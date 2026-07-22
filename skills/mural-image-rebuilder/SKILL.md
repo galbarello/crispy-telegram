@@ -154,6 +154,22 @@ seen in real builds both end in duplicate widgets stacked at the same spot. Guar
 If duplicates do slip in, remove the extras with `delete_widget` (confirm ids via
 `list_widgets` first) — don't just `hidden:true` them, which leaves dead widgets on the board.
 
+**The Mural canvas renders ONLY Proxima Nova — an unknown `fontFamily` silently falls back.**
+`update_widgets` accepts any `fontFamily` string and returns `success:true`, but the canvas
+ignores families it doesn't ship and renders the default (`proxima-nova`). Verified: setting
+`"Lora"` then `"Georgia"` both stored the value yet rendered as the default sans. This is the
+same "the API reports success while nothing changed" trap as `create_table` — a screenshot is
+the only proof. Net: **there is no serif (or any custom face) on a Mural board via the MCP.**
+When a source/theme calls for a serif title, keep it Proxima Nova and carry the distinction with
+size/weight/casing instead; the serif belongs only in an HTML render (a real browser), never the
+board.
+
+**Editing a text widget's `text` drops its inline color/bold unless you resend them.** Color and
+weight are stored *inside* the text markup (as `<span style="color:…">` / `**…**`), so a
+`text`-only `update_widgets` patch (e.g. re-casing a heading to sentence case) strips the
+previously-applied color and bold. Always include `color` and `bold` in the **same** patch as the
+new `text`. (Pure geometry/color patches that don't touch `text` are unaffected.)
+
 **`update_widgets` uses PARENT-RELATIVE coordinates for children — `create_*` uses
 absolute.** This asymmetry silently flings widgets off-screen. `create_*` places a widget
 (even a child of an area) at absolute canvas coords. But `update_widgets` interprets a
