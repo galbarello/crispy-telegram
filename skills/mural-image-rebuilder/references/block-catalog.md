@@ -91,3 +91,13 @@ glyphs); area-nested positioned cells (never `create_table`); the shape choices 
 - **`rings`** → concentric `ellipse` shapes created **largest (outermost) first** so inner rings
   sit on top, each in its `color`, + a label per ring; `style:"bullseye"` centers them tightly as
   a target.
+- **`nest`** → a **containment / wrapping** hierarchy (box inside a box). Build as **nested
+  `area`s**: create the outer node's area first, then each child's area *inside* it (create
+  outer→inner so inner frames render on top; Mural auto-parents a child area created within an
+  outer area's bounds, so the group moves as a unit), recursing. Each node = an area (or a filled
+  `rounded_square` when `kind:"callout"`) + a header textbox (`**label**` in the node's color, ` ·
+  meta` muted) + a `desc` textbox; `layout:"row"` splits the inner width for side-by-side children,
+  `column` stacks them. **Size bottom-up** — a container's height is header + desc + its children's
+  extent + padding — so parents fit their children exactly. **Never flatten containment into a flat
+  `cards` grid** (it destroys the hierarchy — a real bug where a nested "moving parts" section came
+  out as 5 equal cards). `scripts/compile_board.py` compiles `nest` directly.
