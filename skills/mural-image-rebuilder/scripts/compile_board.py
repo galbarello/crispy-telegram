@@ -67,6 +67,17 @@ COVERAGE (this file)
     (central root + branches balanced left/right + children fanned beyond, curved branch-colored
     connectors), and decision (top-to-bottom flowchart: terminator/decision/process nodes layered
     by longest-path rank + labeled directed-edge connectors with midpoint labels).
+    Phase D: nest — a recursively-nested container layout (a box inside a box …) for
+    containment/wrapping diagrams (e.g. HOC layering) the flat `cards` block can't express. Each
+    `box` node renders as an `area` frame (showTitle:false) holding a header (bold label in the
+    node color + optional muted `meta`) + `desc` + its children laid out inside with padding
+    (layout:"column" stacked / layout:"row" side-by-side, equal widths), so children visibly nest
+    inside their parent frame; a `callout` node renders as a filled tinted `rounded_square` (a
+    leaf). Heights are measured BOTTOM-UP by a shared recursive `_nest_measure` used by BOTH
+    `content_height` and the builder, so every parent frame fits its children exactly. Recursion is
+    depth-capped (NEST_MAX_DEPTH); no connectors. Every widget carries `_key`/`_parent` (children
+    parent to their enclosing box's area). Malformed input (missing `node`, a node without `label`,
+    a non-dict node) RAISES so the block degrades to manual_blocks + a warning with clean rollback.
 
     FULL COVERAGE: every board-spec block type now compiles to widgets. `manual_blocks` should
     only ever hold a genuinely-unknown `type` or a block degraded by a malformed spec (each such
@@ -243,6 +254,18 @@ DEC_ROW_PITCH = 132
 # process rectangle.
 DEC_KIND_SHAPE = {"start": "terminator", "end": "terminator",
                   "decision": "decision", "process": "process"}
+
+# --- Phase D geometry (nest — recursively-nested container layout) ---
+# A box node -> an `area` frame; children laid inside with padding so they visibly nest.
+# Heights are measured BOTTOM-UP so every parent frame fits its children exactly.
+NEST_PAD_X = 18          # horizontal inner padding inside a box (left+right)
+NEST_PAD_TOP = 14        # top padding above the header line
+NEST_PAD_BOTTOM = 16     # bottom padding below the last child
+NEST_HEADER_H = 30       # header line height (bold label + optional muted meta)
+NEST_DESC_LINE_H = 20    # ~1 wrapped line of `desc` body text
+NEST_GAP = 16            # vertical gap between stacked (layout:"column") children
+NEST_GUTTER = 16         # horizontal gutter between side-by-side (layout:"row") children
+NEST_MAX_DEPTH = 5       # recursion cap; nodes at the cap render as leaves (children ignored)
 
 # Default palette (Mural brand roles from board-spec.md) — the resolution floor.
 DEFAULT_PALETTE = {
@@ -490,6 +513,50 @@ def _decision_maxrank(block):
     return max(rank.values()) if rank else 0
 
 
+# --- Phase D shared geometry (nest). _nest_children / _nest_desc_h / _nest_measure are used by
+# BOTH content_height and build_nest, so the frame and the laid-out children always agree.
+# All three are pure/defensive — they NEVER raise (validation + raising lives in build_nest). ---
+def _nest_children(node, depth):
+    """The child nodes this node renders: none for a `callout` (a leaf) or at the depth cap;
+    otherwise its `children` list (verbatim — may hold non-dicts, which the tolerant measure
+    counts and build_nest's up-front validator rejects)."""
+    if not isinstance(node, dict) or node.get("kind") == "callout":
+        return []
+    if depth >= NEST_MAX_DEPTH - 1:
+        return []
+    ch = node.get("children")
+    return ch if isinstance(ch, list) else []
+
+
+def _nest_desc_h(desc, inner_w):
+    """Estimated height of a node's `desc` paragraph wrapped at inner_w (0 when absent)."""
+    if not desc:
+        return 0.0
+    cpl = max(12, int(inner_w / 8.0))
+    lines = max(1, int(math.ceil(len(str(desc)) / float(cpl))))
+    return lines * NEST_DESC_LINE_H + 6
+
+
+def _nest_measure(node, width, depth):
+    """Bottom-up height of a nest node at box width `width`: header + desc + (children extent)
+    + padding, so a parent frame fits its children exactly. Tolerant of malformed nodes."""
+    inner_w = max(20.0, width - 2 * NEST_PAD_X)
+    desc_h = _nest_desc_h(node.get("desc") if isinstance(node, dict) else None, inner_w)
+    content_top = NEST_PAD_TOP + NEST_HEADER_H + desc_h
+    children = _nest_children(node, depth)
+    if not children:
+        return content_top + NEST_PAD_BOTTOM
+    layout = node.get("layout", "column")
+    if layout == "row":
+        m = len(children)
+        child_w = (inner_w - (m - 1) * NEST_GUTTER) / float(m) if m else inner_w
+        extent = max((_nest_measure(c, child_w, depth + 1) for c in children), default=0.0)
+    else:  # column: stacked top-to-bottom with a gap between children
+        extent = sum(_nest_measure(c, inner_w, depth + 1) for c in children)
+        extent += max(0, len(children) - 1) * NEST_GAP
+    return content_top + extent + NEST_PAD_BOTTOM
+
+
 def content_height(block, inner_w):
     """Estimated content height (below the heading band) for a block at width inner_w."""
     if block is None:
@@ -576,6 +643,15 @@ def content_height(block, inner_w):
         if t == "decision":
             # (max longest-path rank + 1) rows, so the frame fits the deepest branch.
             return (_decision_maxrank(block) + 1) * DEC_ROW_PITCH + 20
+        # --- Phase D block (recursively-nested containers) ---
+        if t == "nest":
+            # Bottom-up: the root box's own height IS the nest's height (below the heading band).
+            # Uses the SAME _nest_measure the builder uses, so frame and layout agree. Defensive:
+            # a malformed node -> MANUAL_H here (the builder still raises + degrades to manual).
+            node = block.get("node")
+            if not isinstance(node, dict):
+                return MANUAL_H
+            return _nest_measure(node, inner_w, 0)
     except Exception:
         return MANUAL_H
     return MANUAL_H
@@ -2063,6 +2139,121 @@ def build_decision(out, sid, block, ix, iy, iw, ih, pal, area_key):
             }, "%s.decision.elabel%d" % (sid, ei), area_key)
 
 
+# ===========================================================================
+# Phase D: nest — a recursively-nested container layout (a box inside a box …).
+# Each `box` node becomes an `area` frame (showTitle:false) holding a header
+# (bold label in the node color + optional muted meta) + desc + its children
+# laid out INSIDE with padding, so children visibly nest inside the parent
+# frame. A `callout` node becomes a filled tinted `rounded_square` (a leaf).
+# Geometry is measured BOTTOM-UP by the shared _nest_measure (above), so every
+# frame fits its children exactly. Backgrounds-first: the area frame is emitted
+# BEFORE its header/desc/children (so labels, painted last, land on top).
+# Children parent to their ENCLOSING box's area _key, so containment reads both
+# geometrically (child rect ⊂ parent rect) and structurally (_parent chain).
+# Validation raises ValueError on malformed input so the guarded dispatch
+# degrades the block to manual_blocks + a warning with clean rollback.
+# ===========================================================================
+def _nest_validate(node, depth):
+    """Raise ValueError if any RENDERED node is malformed (non-dict, or missing `label`).
+    Children past a `callout` or the depth cap aren't rendered, so aren't validated."""
+    if not isinstance(node, dict):
+        raise ValueError("nest node must be an object (got %s)" % type(node).__name__)
+    if not node.get("label"):
+        raise ValueError("nest node missing `label`")
+    for c in _nest_children(node, depth):
+        _nest_validate(c, depth + 1)
+
+
+def _nest_place(out, sid, node, x, y, w, pal, parent_area_key, depth, seq):
+    """Lay one node at (x, y, w) with its bottom-up-measured height; recurse into children.
+    Returns the node's height so a stacked (column) parent can advance its cursor."""
+    idx = seq[0]
+    seq[0] += 1
+    nkey = "%s.nest.b%d" % (sid, idx)
+    color = resolve(node.get("color", "primary"), pal, "primary")
+    ink = pal.get("ink", DEFAULT_PALETTE["ink"])
+    inner_w = max(20.0, w - 2 * NEST_PAD_X)
+    h = _nest_measure(node, w, depth)
+    label = node.get("label", "")
+    meta = node.get("meta")
+    desc = node.get("desc")
+    is_callout = node.get("kind") == "callout"
+
+    # backgrounds first: the box frame (area) or the callout fill (shape), BEFORE header/desc.
+    if is_callout:
+        # a leaf: filled highlight tint of its color + a colored stroke (a shape, not an area).
+        out.add("create_shapes", {
+            "shape_type": "rounded_square", "x": round(x, 1), "y": round(y, 1),
+            "width": round(w, 1), "height": round(h, 1),
+            "background_color": tint(color, 0.80), "stroke_color": color, "stroke_size": 2,
+        }, nkey, parent_area_key)
+        own_parent = parent_area_key       # callout carries no children; text sits on the shape
+    else:
+        out.add("create_areas", {
+            "x": round(x, 1), "y": round(y, 1), "width": round(w, 1), "height": round(h, 1),
+            "title": str(label), "showTitle": False,
+        }, nkey, parent_area_key)
+        own_parent = nkey                  # this box's children/text parent to its own area
+
+    # header line: bold label in the node color + optional muted meta, right-aligned same line.
+    hx = x + NEST_PAD_X
+    hy = y + NEST_PAD_TOP
+    label_w = inner_w
+    if meta:
+        meta_w = min(inner_w * 0.5, 10 + len(str(meta)) * 7)
+        label_w = max(20.0, inner_w - meta_w - 8)
+        out.add("create_textboxes", {
+            "x": round(hx + inner_w - meta_w, 1), "y": round(hy, 1), "width": round(meta_w, 1),
+            "text": str(meta), "font_size": 12, "italic": True, "font_color": MUTED,
+            "text_align": "right",
+        }, "%s.meta" % nkey, own_parent)
+    out.add("create_textboxes", {
+        "x": round(hx, 1), "y": round(hy, 1), "width": round(label_w, 1),
+        "text": str(label), "font_size": 15, "bold": True, "font_color": color,
+    }, "%s.label" % nkey, own_parent)
+
+    if desc:
+        out.add("create_textboxes", {
+            "x": round(hx, 1), "y": round(hy + NEST_HEADER_H, 1), "width": round(inner_w, 1),
+            "text": str(desc), "font_size": 13, "font_color": ink,
+        }, "%s.desc" % nkey, own_parent)
+
+    children = _nest_children(node, depth)
+    if is_callout or not children:
+        return h
+
+    # children start below the header+desc band, inset by the horizontal padding.
+    cy0 = y + NEST_PAD_TOP + NEST_HEADER_H + _nest_desc_h(desc, inner_w)
+    cx0 = x + NEST_PAD_X
+    if node.get("layout", "column") == "row":
+        # side by side, splitting the inner width equally with a gutter between them.
+        m = len(children)
+        child_w = (inner_w - (m - 1) * NEST_GUTTER) / float(m)
+        cxp = cx0
+        for c in children:
+            _nest_place(out, sid, c, cxp, cy0, child_w, pal, own_parent, depth + 1, seq)
+            cxp += child_w + NEST_GUTTER
+    else:
+        # stacked top-to-bottom with a gap; advance the cursor by each child's own height.
+        cyp = cy0
+        for c in children:
+            ch_h = _nest_place(out, sid, c, cx0, cyp, inner_w, pal, own_parent, depth + 1, seq)
+            cyp += ch_h + NEST_GAP
+    return h
+
+
+def build_nest(out, sid, block, ix, iy, iw, ih, pal, area_key):
+    """Render the root container node (and its recursive children) into the section frame.
+    Validates up front so malformed input raises before anything is emitted (the guarded
+    dispatch also rolls back). The root box's height == content_height(block), so it fits the
+    section's inner region; nested boxes are strictly contained by construction (padding > 0)."""
+    node = block.get("node")
+    if not isinstance(node, dict):
+        raise ValueError("nest requires a `node` object")
+    _nest_validate(node, 0)
+    _nest_place(out, sid, node, ix, iy, iw, pal, area_key, 0, [0])
+
+
 def build_chart(out, sid, block, ix, iy, iw, ih, pal, area_key, box):
     """Wire line/pie/bar charts through the reusable builders; unknown types -> manual_blocks."""
     ctype = block.get("chartType")
@@ -2325,7 +2516,7 @@ def compile_board(spec, palette_arg, icons_json):
                  "gauge", "pyramid", "funnel", "quadrant", "pillars",
                  "spectrum", "rings", "venn",
                  "cycle", "hub", "timeline", "swimlane", "gantt",
-                 "tree", "mindmap", "decision"):
+                 "tree", "mindmap", "decision", "nest"):
             # Every builder degrades to manual_blocks + a warning on any failure — a malformed
             # block must never crash the whole board (build_chart also guards internally).
             # Snapshot bucket lengths so a builder that raises AFTER emitting some widgets
@@ -2385,6 +2576,8 @@ def compile_board(spec, palette_arg, icons_json):
                     build_mindmap(out, sid, block, ix, iy, iw, ih, pal, area_key, icon_index)
                 elif t == "decision":
                     build_decision(out, sid, block, ix, iy, iw, ih, pal, area_key)
+                elif t == "nest":
+                    build_nest(out, sid, block, ix, iy, iw, ih, pal, area_key)
             except Exception as e:
                 for _k, _n in _snap.items():
                     del out.d[_k][_n:]  # roll back any widgets emitted before the raise

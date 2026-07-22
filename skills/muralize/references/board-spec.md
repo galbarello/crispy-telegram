@@ -491,6 +491,34 @@ ecosystem), or a bullseye of priorities. Distinct from `pyramid` (stacked bands)
 created **largest first** (so inner rings sit on top), each in its `color`, + a label per ring;
 HTML: nested SVG circles.
 
+### nest — box-inside-a-box containment / wrapping diagram
+```json
+{ "type": "nest",
+  "node": {
+    "label": "Route table", "meta": "src/mural/routes/index.tsx",
+    "desc": "The react-router v5 route table…", "color": "primary",
+    "children": [
+      { "label": "RouteComponent · withOnEnter", "meta": "packages/platform/{router,history}",
+        "desc": "Migration shims that emulate v3's onEnter…", "color": "primary",
+        "children": [
+          { "kind": "callout", "color": "accent",
+            "label": "await onEnter(nextState) ← the boot chain runs here",
+            "desc": "Before anything below exists. This ordering is the whole race." },
+          { "label": "withMural(MuralRoute, Loading, muralInitFn?)", "desc": "The canvas HOC…",
+            "layout": "row",
+            "children": [ { "label": "Loading", "desc": "A loading bar…" },
+                          { "label": "MuralRoute", "desc": "The actual page…" } ] }
+        ] } ] } }
+```
+A **containment / wrapping** hierarchy (one thing rendered/wrapped inside another — e.g. HOC
+layers), where visual nesting IS the meaning. Each `node` has `label` (required, bold in `color`),
+optional `meta` (muted sub-label on the header line), `desc`, `color`, `kind` (`box` = area frame,
+default, or `callout` = a filled highlight leaf), `layout` (`column`, default, or `row` for
+side-by-side children), and `children` (recurse). Rebuilder: **nested `area`s** — an outer area,
+each child an area created *inside* it, recursing (a `callout` node is a filled `rounded_square`);
+heights computed bottom-up so parents fit their children. HTML: nested bordered `<div>`s.
+**Never flatten a containment layout into `cards`** — a flat grid destroys the hierarchy.
+
 ## Icons
 
 Reference icons by **concept name** (`telescope`, `flask`, `people`, `rocket`, `shield`,

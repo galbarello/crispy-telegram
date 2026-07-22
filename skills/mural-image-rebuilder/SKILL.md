@@ -68,6 +68,7 @@ for charts and metaphor blocks live in references — **load them only when you 
 | `gauge` | a gauge tile per item — linear meter (default, renders precisely) or radial dial; the numeric `value` label is the fidelity, not the arc. Recipe: `references/chart-fidelity.md`. |
 | `chart` (`bar`/`line`/`pie`) | build from primitives in a plot area (axis first, data, labels on top); the value labels are the fidelity, the shapes are the approximation. Recipe: `references/chart-fidelity.md` (+ `scripts/line_chart.py`, `scripts/pie_chart.py`). |
 | `comparison` `cycle` `chips` `pyramid` `funnel` `quadrant` `pillars` `hub` `timeline` `swimlane` `gantt` `tree` `mindmap` `venn` `spectrum` `decision` `rings` | metaphor blocks — one build recipe each in `references/block-catalog.md` (real connectors, area-nested cells, never `create_table`). |
+| `nest` — a box-inside-a-box **containment / wrapping** diagram (e.g. HOC layering) | **nested `area`s**: an outer area, each child an area created inside it with its own header+desc, recursing; a `callout` node is a filled highlight. This is the ONLY faithful shape for nested containment — **do NOT flatten it into `cards`** (a flat grid loses the hierarchy — a real bug: a nested "moving parts" section came out as 5 equal cards). Recipe: `references/block-catalog.md`. |
 | `icon` concept names | resolve via the icon-matching loop (or use a supplied `noun_project_id`) — `references/icon-matching.md`. |
 
 **Compile the common blocks instead of hand-computing coordinates.** `scripts/compile_board.py`
@@ -80,8 +81,9 @@ reasoning out every x/y. It covers `meta` header, `section`, `banner`, `callout`
 `flow` (step nodes + real connectors, closing the cycle on `loop:true`), `comparison`
 (stacked columns + connectors), the static metaphor blocks `gauge` (linear meter), `pyramid`,
 `funnel`, `quadrant` (2×2 + positioned dots), `pillars`, `spectrum`, `rings`, `venn`, and the
-connector/graph metaphors `cycle`, `hub`, `timeline`, `swimlane`, `gantt`, `tree`, `mindmap`, and
-`decision` — i.e. **every board-spec block type**. `manual_blocks` now only ever holds a
+connector/graph metaphors `cycle`, `hub`, `timeline`, `swimlane`, `gantt`, `tree`, `mindmap`,
+`decision`, and `nest` (recursively-nested container boxes for containment/wrapping diagrams)
+— i.e. **every board-spec block type**. `manual_blocks` now only ever holds a
 genuinely-unknown `type` or a block whose builder degraded on malformed input (each with a warning
 + a clean rollback — no orphan widgets, never a crash). Each widget carries a stable
 `_key`/`_parent`; `connectors` reference `_key`s. Emit each returned array as
@@ -223,10 +225,17 @@ Two hard rules learned from real builds:
   relocate, sometimes to negative coordinates. Use textboxes or shapes (**never
   `create_table`** — its cells render empty here; build matrices from area-nested chips +
   textboxes).
-- **Areas are the only real containers, and only via `parent_id`.** Dropping a widget
-  inside an area's bounds does not parent it. Create the area first, then parent its
-  children, so the section moves and groups as a unit. Newer widgets render on top, so
-  create backgrounds/areas before their contents.
+- **Areas are the only real containers. Create the area FIRST, then its contents.**
+  Newer widgets render on top, so create backgrounds/areas before their contents.
+  **Observed here: `create_*` AUTO-PARENTS a widget to the area whose bounds it lands in**
+  — the returned widget carries that area's `parent_id` even when you didn't pass one (confirmed
+  via `list_widgets`; an earlier note claimed the opposite — trust `list_widgets`, and note it
+  may be version-specific). Two consequences: (1) a section built as an `area` + children placed
+  inside it groups as a unit for free; (2) **reflow is cheap — to insert vertical space, move just
+  the section AREAS (top-level, so `update_widgets` y is absolute) and their children follow on
+  their preserved relative offsets.** Do NOT then move each child too (children are parent-relative
+  under `update_widgets` — moving both double-applies the shift). Nest areas inside areas the same
+  way for containment layouts (see the `nest` block).
 
 ## Maximal batching — the biggest speed lever
 
