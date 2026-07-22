@@ -86,10 +86,17 @@ contract (one JSON object keyed by create tool, backgrounds-first). Reuses `line
   This is the first real use of the connector handshake — validated that every emitted connector's
   `from`/`to` `_key` exists among the emitted widgets. Broken sub-builders degrade to
   `manual_blocks` + a warning (exit 0), like line/pie.
-- **Phase C (deferred, L, demand-driven):** the remaining metaphor blocks (`gauge`, `cycle`,
-  `pyramid`, `funnel`, `quadrant`, `pillars`, `hub`, `timeline`, `swimlane`, `gantt`, `tree`,
-  `mindmap`, `venn`, `spectrum`, `decision`, `rings`) — where the model's fidelity judgment matters
-  most; do NOT build speculatively.
+- **Phase C-1 — SHIPPED:** the static/deterministic metaphor blocks `gauge` (linear meter, active
+  zone coloring, value label = fidelity), `pyramid`, `funnel` (value-proportional bands),
+  `quadrant` (2×2 tinted cells + axis poles + positioned dots clamped on-plot), `pillars`,
+  `spectrum` (gradient segments + pole labels + markers), `rings` (nested ellipses, largest first),
+  `venn` (2–3 alpha-fill ellipses). Shape+text only (no connectors); each `raise`s on malformed
+  input so the guarded dispatch degrades it to `manual_blocks` + a warning (exit 0). Validated:
+  gauge fill ∝ value, quadrant dots inside plot at x/y ∈ {0,0.5,1}, monotonic pyramid/funnel band
+  widths, overlapping venn circles, unique `_key`s, non-overlapping areas.
+- **Phase C-2 (deferred, demand-driven):** the connector/graph-heavy metaphors (`cycle`, `hub`,
+  `timeline`, `swimlane`, `gantt`, `tree`, `mindmap`, `decision`) — bespoke layout + connectors,
+  where the model's fidelity judgment matters most; do NOT build speculatively.
 - **Graceful degradation:** uncovered block types pass through as `manual_blocks` (with `{section,
   type,reason,box}`); unresolved icons drop to `warnings[]` without failing the block. Treat
   compiler output as a tweakable starting payload, not a frozen board.

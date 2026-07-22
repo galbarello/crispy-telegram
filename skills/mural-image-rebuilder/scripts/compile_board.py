@@ -47,7 +47,15 @@ COVERAGE (this file)
     cells: text/bullets/chips/coloredText + badge/icon leading column), flow (step nodes L->R
     with REAL connectors between consecutive nodes, closing the loop when loop:true), comparison
     (N stacked-box columns with intra-column connectors per the block's `connector`), and chart
-    chartType:"bar" (real bars from a baseline via bar_chart.build()). Every other block type
+    chartType:"bar" (real bars from a baseline via bar_chart.build()).
+    Phase C-1: the STATIC/deterministic metaphor blocks (shape + text only, NO connectors) —
+    gauge (linear-meter tile per item: track + value fill in the active `zones` color + `value``unit`),
+    pyramid (stacked centered bands, width graded by `direction`), funnel (stacked bands narrowing by
+    `value`/order), quadrant (2x2 tinted cells + crosshair + axis pole labels + positioned item dots),
+    pillars (capstone bar over N flex columns), spectrum (gradient-approx bar + pole labels + markers),
+    rings (nested concentric ellipses, largest-first), and venn (2-3 overlapping semi-transparent
+    ellipses). Each validates its spec and degrades to `manual_blocks` + a warning on malformation.
+    Every OTHER block type (cycle, hub, timeline, swimlane, gantt, tree, mindmap, decision) still
     passes through to `manual_blocks` for the model to build (see block-catalog.md / Phase C).
 
 CLI
@@ -115,6 +123,50 @@ FLOW_SHAPE = {"step": "rounded_square", "process": "rectangle",
 # comparison `connector` -> connector arrow_type hint for the emitted connector records.
 COMP_ARROW = {"arrow-down": "straight", "arrow": "straight"}
 
+# --- Phase C-1 geometry (STATIC/deterministic metaphor blocks) ---
+# gauge: one meter tile per item, laid out in `columns` like metrics.
+GAUGE_H = 156           # tile height
+GAUGE_TRACK_H = 24      # linear-meter track/value bar height
+GAUGE_GUTTER = 24       # gap between gauge tiles
+
+# pyramid / funnel: stacked centered bands whose width encodes scope/value.
+PYR_BAND_H = 62
+PYR_GAP = 8
+PYR_MIN_FRAC = 0.34     # apex band width as a fraction of the base band
+FUN_BAND_H = 58
+FUN_GAP = 6
+FUN_MIN_FRAC = 0.30     # narrowest stage width fraction (no-values fallback)
+
+# quadrant: a 2x2 tinted plot with axis pole labels + positioned dots.
+QUAD_PLOT_H = 460       # plot square-ish height
+QUAD_XLABEL_H = 40      # bottom band for x-axis pole labels
+QUAD_YLABEL_W = 96      # left gutter for y-axis pole labels
+QUAD_DOT = 16           # positioned item dot diameter
+# cell tints for [bottom-left, bottom-right, top-left, top-right] (quadrantLabels order).
+QUAD_CELL_ROLES = ["warning", "primary", "danger", "success"]
+
+# pillars: a capstone bar over N flex columns.
+PILLAR_CAP_H = 56
+PILLAR_GAP = 20
+PILLAR_H = 210          # column height below the capstone
+PILLAR_COL_GUTTER = 24
+
+# spectrum: a horizontal gradient-approximation bar with pole labels + markers.
+SPECTRUM_H = 150
+SPECTRUM_BAR_H = 28
+SPECTRUM_SEG = 12       # number of adjacent color segments approximating the gradient
+SPECTRUM_DOT = 18
+
+# rings: nested concentric ellipses.
+RINGS_MAX_D = 460
+
+# venn: 2-3 overlapping semi-transparent ellipses.
+VENN_MAX_D = 300
+VENN_ALPHA = "2E"       # 8-digit hex alpha (~18%) appended to a #RRGGBB fill — verified to
+                        # render (block-catalog.md venn recipe); pairwise/triple overlaps stack
+                        # darker so the intersection reads.
+VENN_H = 420
+
 # Default palette (Mural brand roles from board-spec.md) — the resolution floor.
 DEFAULT_PALETTE = {
     "primary": "#195AD7", "success": "#00C27A", "warning": "#FFAA00",
@@ -158,6 +210,23 @@ def contrast(hex_color):
     r, g, b = _hx(hex_color)
     lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255.0
     return "#FFFFFF" if lum < 0.6 else DEFAULT_PALETTE["ink"]
+
+
+def lerp_hex(a, b, t):
+    """Linear blend between two hex colors (t=0 -> a, t=1 -> b). For gradient segments."""
+    ra, ga, ba = _hx(a)
+    rb, gb, bb = _hx(b)
+    return "#%02X%02X%02X" % (round(ra + (rb - ra) * t),
+                              round(ga + (gb - ga) * t),
+                              round(ba + (bb - ba) * t))
+
+
+def alpha_hex(hex_color, alpha="2E"):
+    """Return an 8-digit #RRGGBBAA fill (semi-transparent) — for overlapping venn circles."""
+    h = hex_color.lstrip("#")
+    if len(h) == 3:
+        h = "".join(c * 2 for c in h)
+    return "#%s%s" % (h[:6].upper(), alpha)
 
 
 # ---------------------------------------------------------------------------
@@ -332,6 +401,28 @@ def content_height(block, inner_w):
             return rows * CHIP_H + max(0, rows - 1) * CHIP_GAP
         if t == "chart":
             return CHART_PIE_H if block.get("chartType") == "pie" else CHART_LINE_H
+        # --- Phase C-1 blocks ---
+        if t == "gauge":
+            items = block.get("items", []) or []
+            cols = max(1, int(block.get("columns", min(len(items), 3) or 1)))
+            rows = _grid(len(items), cols)
+            return rows * GAUGE_H + max(0, rows - 1) * GAUGE_GUTTER
+        if t == "pyramid":
+            n = len(block.get("layers", []) or [])
+            return n * PYR_BAND_H + max(0, n - 1) * PYR_GAP
+        if t == "funnel":
+            n = len(block.get("stages", []) or [])
+            return n * FUN_BAND_H + max(0, n - 1) * FUN_GAP
+        if t == "quadrant":
+            return QUAD_PLOT_H + QUAD_XLABEL_H
+        if t == "pillars":
+            return PILLAR_CAP_H + PILLAR_GAP + PILLAR_H
+        if t == "spectrum":
+            return SPECTRUM_H
+        if t == "rings":
+            return min(RINGS_MAX_D, inner_w)
+        if t == "venn":
+            return VENN_H
     except Exception:
         return MANUAL_H
     return MANUAL_H
@@ -750,6 +841,480 @@ def build_comparison(out, sid, block, ix, iy, iw, ih, pal, area_key):
                     out.connect(item_keys[a], item_keys[a + 1])
 
 
+# ===========================================================================
+# Phase C-1: STATIC / deterministic metaphor blocks (shape + text only, NO
+# connectors). Each validates its required fields and RAISES ValueError on a
+# malformed spec so the guarded dispatch in compile_board() degrades the block
+# to manual_blocks + a warning (never crashing the whole board). Geometry is
+# derived from the inner content region; backgrounds are emitted first so labels
+# (create_textboxes, painted last) always land on top. All widgets carry
+# _key/_parent; colors resolve via resolve(role_or_hex, pal).
+# ===========================================================================
+def _gauge_zone_color(zones, value, pal, default_role):
+    """Active-zone color: the FIRST band whose `upTo` >= value (bands run min->max).
+    Above the last band's upTo, fall back to the last band; no zones -> the default role."""
+    if zones:
+        for z in zones:
+            if not isinstance(z, dict) or "upTo" not in z:
+                raise ValueError("gauge zone missing `upTo`")
+            if value <= z["upTo"]:
+                return resolve(z.get("color", default_role), pal, default_role)
+        return resolve(zones[-1].get("color", default_role), pal, default_role)
+    return resolve(default_role, pal, "primary")
+
+
+def build_gauge(out, sid, block, ix, iy, iw, ih, pal, area_key):
+    """One linear-meter tile per item: label + track + value fill (colored by the active
+    `zones` band, width = (value-min)/(max-min)) + centered `value``unit` (the fidelity)."""
+    items = block.get("items", []) or []
+    if not items:
+        raise ValueError("gauge has no `items`")
+    cols = max(1, int(block.get("columns", min(len(items), 3) or 1)))
+    cw = (iw - (cols - 1) * GAUGE_GUTTER) / float(cols)
+    for idx, item in enumerate(items):
+        if not isinstance(item, dict):
+            raise ValueError("gauge item %d is not an object" % idx)
+        for f in ("value", "min", "max"):
+            if item.get(f) is None:
+                raise ValueError("gauge item %d missing `%s`" % (idx, f))
+        value = float(item["value"])
+        vmin = float(item["min"])
+        vmax = float(item["max"])
+        span = vmax - vmin
+        if span <= 0:
+            raise ValueError("gauge item %d has max<=min" % idx)
+        frac = max(0.0, min(1.0, (value - vmin) / span))
+        active = _gauge_zone_color(item.get("zones"), value,
+                                   pal, item.get("color", "primary"))
+        unit = item.get("unit", "") or ""
+
+        r, c = idx // cols, idx % cols
+        cx = ix + c * (cw + GAUGE_GUTTER)
+        cy = iy + r * (GAUGE_H + GAUGE_GUTTER)
+        base = f"{sid}.gauge{idx}"
+        # backgrounds first: tile, then track, then the value fill on top.
+        out.add("create_shapes", {
+            "shape_type": "rounded_square", "x": round(cx, 1), "y": round(cy, 1),
+            "width": round(cw, 1), "height": GAUGE_H,
+            "background_color": pal.get("surface", DEFAULT_PALETTE["surface"]),
+            "stroke_color": tint(active, 0.6), "stroke_size": 1,
+        }, f"{base}.bg", area_key)
+        track_x = cx + 16
+        track_w = cw - 32
+        track_y = cy + GAUGE_H - 52
+        out.add("create_shapes", {
+            "shape_type": "rounded_square", "x": round(track_x, 1), "y": round(track_y, 1),
+            "width": round(track_w, 1), "height": GAUGE_TRACK_H,
+            "background_color": tint(active, 0.85), "stroke_color": tint(active, 0.6),
+            "stroke_size": 1,
+        }, f"{base}.track", area_key)
+        out.add("create_shapes", {
+            "shape_type": "rounded_square", "x": round(track_x, 1), "y": round(track_y, 1),
+            "width": round(max(1.0, track_w * frac), 1), "height": GAUGE_TRACK_H,
+            "background_color": active, "stroke_color": active, "stroke_size": 0,
+        }, f"{base}.fill", area_key)
+        # text on top: metric label, big value+unit (the fidelity), min/max ends, caption.
+        out.add("create_textboxes", {
+            "x": round(cx + 16, 1), "y": round(cy + 14, 1), "width": round(cw - 32, 1),
+            "text": item.get("label", ""), "font_size": 14, "bold": True,
+            "font_color": pal.get("ink", DEFAULT_PALETTE["ink"]),
+        }, f"{base}.label", area_key)
+        out.add("create_textboxes", {
+            "x": round(cx + 16, 1), "y": round(cy + 42, 1), "width": round(cw - 32, 1),
+            "text": "%s%s" % (item["value"], unit), "font_size": 30, "bold": True,
+            "font_color": active, "text_align": "center",
+        }, f"{base}.value", area_key)
+        out.add("create_textboxes", {
+            "x": round(track_x, 1), "y": round(track_y + GAUGE_TRACK_H + 2, 1),
+            "width": round(track_w, 1),
+            "text": "%s%s          %s%s" % (item["min"], unit, item["max"], unit),
+            "font_size": 10, "font_color": MUTED,
+        }, f"{base}.scale", area_key)
+        if item.get("caption"):
+            out.add("create_textboxes", {
+                "x": round(cx + 16, 1), "y": round(cy + GAUGE_H - 20, 1),
+                "width": round(cw - 32, 1), "text": item["caption"],
+                "font_size": 11, "italic": True, "font_color": MUTED,
+            }, f"{base}.caption", area_key)
+
+
+def build_pyramid(out, sid, block, ix, iy, iw, ih, pal, area_key):
+    """Stacked horizontal bands, widest at the base. `direction:"up"` (default) = apex on top
+    (widths grow top->bottom); `direction:"down"` = apex on the bottom (widths shrink)."""
+    layers = block.get("layers", []) or []
+    n = len(layers)
+    if n == 0:
+        raise ValueError("pyramid has no `layers`")
+    up = block.get("direction", "up") != "down"  # up => apex (narrowest) on top
+    for i, layer in enumerate(layers):
+        if not isinstance(layer, dict):
+            layer = {"label": str(layer)}
+        # fraction of full width for this band; monotonic in i.
+        if n == 1:
+            frac = 1.0
+        else:
+            g = i / float(n - 1)                       # 0 at top .. 1 at bottom
+            frac = (PYR_MIN_FRAC + (1.0 - PYR_MIN_FRAC) * g) if up else \
+                   (1.0 - (1.0 - PYR_MIN_FRAC) * g)
+        bw = iw * frac
+        bx = ix + (iw - bw) / 2.0
+        by = iy + i * (PYR_BAND_H + PYR_GAP)
+        color = resolve(layer.get("color", CYCLE[i % len(CYCLE)]), pal, "primary")
+        out.add("create_shapes", {
+            "shape_type": "trapezoid", "x": round(bx, 1), "y": round(by, 1),
+            "width": round(bw, 1), "height": PYR_BAND_H,
+            "background_color": color, "stroke_color": color, "stroke_size": 0,
+            "text": str(layer.get("label", "")), "font_size": 15, "bold": True,
+            "text_align": "center", "font_color": contrast(color),
+        }, "%s.pyr%d" % (sid, i), area_key)
+
+
+def build_funnel(out, sid, block, ix, iy, iw, ih, pal, area_key):
+    """Stacked bands narrowing top->bottom. Width ∝ `value` when values are given, else a
+    linear taper by order. Labels + values are the fidelity (verbatim)."""
+    stages = block.get("stages", []) or []
+    n = len(stages)
+    if n == 0:
+        raise ValueError("funnel has no `stages`")
+    vals = []
+    for s in stages:
+        vals.append(s.get("value") if isinstance(s, dict) else None)
+    have_vals = all(v is not None for v in vals) and n > 0
+    vmax = max((float(v) for v in vals), default=0.0) if have_vals else 0.0
+    for i, stage in enumerate(stages):
+        if not isinstance(stage, dict):
+            stage = {"label": str(stage)}
+        if have_vals and vmax > 0:
+            # width ∝ value (verbatim proportion — never smooth the taper). Only a tiny
+            # absolute floor so a near-zero stage still renders a clickable band.
+            frac = max(0.05, float(vals[i]) / vmax)
+        elif n == 1:
+            frac = 1.0
+        else:
+            frac = 1.0 - (1.0 - FUN_MIN_FRAC) * (i / float(n - 1))
+        frac = min(1.0, frac)
+        bw = iw * frac
+        bx = ix + (iw - bw) / 2.0
+        by = iy + i * (FUN_BAND_H + FUN_GAP)
+        color = resolve(stage.get("color", CYCLE[i % len(CYCLE)]), pal, "primary")
+        label = stage.get("label", "")
+        text = "%s  (%s)" % (label, stage["value"]) if have_vals else str(label)
+        out.add("create_shapes", {
+            "shape_type": "trapezoid", "x": round(bx, 1), "y": round(by, 1),
+            "width": round(bw, 1), "height": FUN_BAND_H,
+            "background_color": color, "stroke_color": color, "stroke_size": 0,
+            "text": text, "font_size": 15, "bold": True,
+            "text_align": "center", "font_color": contrast(color),
+        }, "%s.fun%d" % (sid, i), area_key)
+
+
+def build_quadrant(out, sid, block, ix, iy, iw, ih, pal, area_key):
+    """A 2x2 tinted plot + x/y axis pole labels (low/high) + a positioned dot per item at its
+    (x,y) in [0,1] (x left->right, y bottom->top), each with the item label."""
+    xaxis = block.get("xAxis", {}) or {}
+    yaxis = block.get("yAxis", {}) or {}
+    qlabels = block.get("quadrantLabels", []) or []  # [bl, br, tl, tr]
+    items = block.get("items", []) or []
+
+    plot_x = ix + QUAD_YLABEL_W
+    plot_y = iy
+    plot_w = iw - QUAD_YLABEL_W
+    plot_h = min(QUAD_PLOT_H, ih - QUAD_XLABEL_H)
+    hw, hh = plot_w / 2.0, plot_h / 2.0
+    ink = pal.get("ink", DEFAULT_PALETTE["ink"])
+
+    # 1) four tinted cells (backgrounds). Order [bl, br, tl, tr] matches quadrantLabels.
+    cells = [
+        (plot_x,      plot_y + hh),  # bottom-left
+        (plot_x + hw, plot_y + hh),  # bottom-right
+        (plot_x,      plot_y),       # top-left
+        (plot_x + hw, plot_y),       # top-right
+    ]
+    for qi, (cxp, cyp) in enumerate(cells):
+        fill = tint(resolve(QUAD_CELL_ROLES[qi], pal, "surface"), 0.90)
+        out.add("create_shapes", {
+            "shape_type": "rectangle", "x": round(cxp, 1), "y": round(cyp, 1),
+            "width": round(hw, 1), "height": round(hh, 1),
+            "background_color": fill, "stroke_color": "#DADCE0", "stroke_size": 1,
+        }, "%s.quad.cell%d" % (sid, qi), area_key)
+
+    # 2) crosshair — two thin rectangles (stroke set so they don't inherit the dark default).
+    out.add("create_shapes", {
+        "shape_type": "rectangle", "x": round(plot_x + hw - 1, 1), "y": round(plot_y, 1),
+        "width": 2, "height": round(plot_h, 1),
+        "background_color": MUTED, "stroke_color": MUTED, "stroke_size": 0,
+    }, "%s.quad.vline" % sid, area_key)
+    out.add("create_shapes", {
+        "shape_type": "rectangle", "x": round(plot_x, 1), "y": round(plot_y + hh - 1, 1),
+        "width": round(plot_w, 1), "height": 2,
+        "background_color": MUTED, "stroke_color": MUTED, "stroke_size": 0,
+    }, "%s.quad.hline" % sid, area_key)
+
+    # 3) quadrant cell labels (centered-ish in each cell).
+    for qi, (cxp, cyp) in enumerate(cells):
+        if qi < len(qlabels) and qlabels[qi]:
+            out.add("create_textboxes", {
+                "x": round(cxp + 10, 1), "y": round(cyp + 10, 1), "width": round(hw - 20, 1),
+                "text": str(qlabels[qi]), "font_size": 13, "bold": True,
+                "font_color": MUTED, "text_align": "center",
+            }, "%s.quad.qlabel%d" % (sid, qi), area_key)
+
+    # 4) axis pole labels: x low/high under the plot, y low/high in the left gutter.
+    if xaxis.get("low"):
+        out.add("create_textboxes", {
+            "x": round(plot_x, 1), "y": round(plot_y + plot_h + 8, 1), "width": round(hw, 1),
+            "text": str(xaxis["low"]), "font_size": 12, "bold": True, "font_color": ink,
+        }, "%s.quad.xlow" % sid, area_key)
+    if xaxis.get("high"):
+        out.add("create_textboxes", {
+            "x": round(plot_x + hw, 1), "y": round(plot_y + plot_h + 8, 1),
+            "width": round(hw, 1), "text": str(xaxis["high"]), "font_size": 12, "bold": True,
+            "font_color": ink, "text_align": "right",
+        }, "%s.quad.xhigh" % sid, area_key)
+    if yaxis.get("high"):
+        out.add("create_textboxes", {
+            "x": round(ix, 1), "y": round(plot_y + 4, 1), "width": round(QUAD_YLABEL_W - 8, 1),
+            "text": str(yaxis["high"]), "font_size": 12, "bold": True, "font_color": ink,
+        }, "%s.quad.yhigh" % sid, area_key)
+    if yaxis.get("low"):
+        out.add("create_textboxes", {
+            "x": round(ix, 1), "y": round(plot_y + plot_h - 20, 1),
+            "width": round(QUAD_YLABEL_W - 8, 1), "text": str(yaxis["low"]),
+            "font_size": 12, "bold": True, "font_color": ink,
+        }, "%s.quad.ylow" % sid, area_key)
+
+    # 5) positioned item dots. Validate x/y in [0,1] (out of range -> degrade to manual),
+    # then clamp the dot CENTER so the whole dot bbox stays inside the plot.
+    r = QUAD_DOT / 2.0
+    for di, item in enumerate(items):
+        if not isinstance(item, dict) or item.get("x") is None or item.get("y") is None:
+            raise ValueError("quadrant item %d missing x/y" % di)
+        x = float(item["x"])
+        y = float(item["y"])
+        if not (0.0 <= x <= 1.0 and 0.0 <= y <= 1.0):
+            raise ValueError("quadrant item %d x/y out of [0,1]" % di)
+        dcx = plot_x + x * plot_w
+        dcy = plot_y + (1.0 - y) * plot_h  # y bottom->top
+        dcx = min(max(dcx, plot_x + r), plot_x + plot_w - r)
+        dcy = min(max(dcy, plot_y + r), plot_y + plot_h - r)
+        color = resolve(item.get("color", CYCLE[di % len(CYCLE)]), pal, "primary")
+        out.add("create_shapes", {
+            "shape_type": "ellipse", "x": round(dcx - r, 1), "y": round(dcy - r, 1),
+            "width": QUAD_DOT, "height": QUAD_DOT,
+            "background_color": color, "stroke_color": color, "stroke_size": 0,
+        }, "%s.quad.dot%d" % (sid, di), area_key)
+        out.add("create_textboxes", {
+            "x": round(dcx + r + 4, 1), "y": round(dcy - LINE_H / 2.0, 1),
+            "width": 140, "text": str(item.get("label", "")), "font_size": 11,
+            "font_color": ink,
+        }, "%s.quad.dotlabel%d" % (sid, di), area_key)
+
+
+def build_pillars(out, sid, block, ix, iy, iw, ih, pal, area_key, icon_index):
+    """A capstone bar across the top (label from `capstone`) over N flex columns, each with
+    an optional icon + title + desc, tinted by the column color."""
+    columns = block.get("columns", []) or []
+    n = len(columns)
+    if n == 0:
+        raise ValueError("pillars has no `columns`")
+    # capstone bar (backgrounds first).
+    cap = block.get("capstone")
+    col_y = iy
+    if cap:
+        cap_bg = resolve(block.get("color", "ink"), pal, "ink")
+        out.add("create_shapes", {
+            "shape_type": "rectangle", "x": round(ix, 1), "y": round(iy, 1),
+            "width": round(iw, 1), "height": PILLAR_CAP_H,
+            "background_color": cap_bg, "stroke_color": cap_bg, "stroke_size": 0,
+            "text": str(cap), "font_size": 18, "bold": True,
+            "text_align": "center", "font_color": contrast(cap_bg),
+        }, "%s.pillars.cap" % sid, area_key)
+        col_y = iy + PILLAR_CAP_H + PILLAR_GAP
+    col_h = min(PILLAR_H, iy + ih - col_y)
+    cw = (iw - (n - 1) * PILLAR_COL_GUTTER) / float(n)
+    for ci, col in enumerate(columns):
+        if not isinstance(col, dict):
+            col = {"title": str(col)}
+        cx = ix + ci * (cw + PILLAR_COL_GUTTER)
+        color = resolve(col.get("color", CYCLE[ci % len(CYCLE)]), pal, "primary")
+        out.add("create_shapes", {
+            "shape_type": "rectangle", "x": round(cx, 1), "y": round(col_y, 1),
+            "width": round(cw, 1), "height": round(col_h, 1),
+            "background_color": tint(color, 0.90), "stroke_color": color, "stroke_size": 2,
+        }, "%s.pillars.col%d" % (sid, ci), area_key)
+        top = col_y + 18
+        if col.get("icon") is not None:
+            nid, concept = resolve_icon(col["icon"], icon_index)
+            if nid is not None:
+                out.add("create_icons", {
+                    "noun_project_id": nid,
+                    "x": round(cx + cw / 2.0 - ICON_SLOT / 2.0, 1), "y": round(top, 1),
+                    "width": ICON_SLOT, "height": ICON_SLOT, "color": color,
+                    "tags": [str(concept)] if concept else [],
+                }, "%s.pillars.col%d.icon" % (sid, ci), area_key)
+                top += ICON_SLOT + 8
+            else:
+                out.warn("section %s pillars col%d: icon %r unresolved (run search_icons)"
+                         % (sid, ci, concept))
+        out.add("create_textboxes", {
+            "x": round(cx + 14, 1), "y": round(top, 1), "width": round(cw - 28, 1),
+            "text": str(col.get("title", "")), "font_size": 16, "bold": True,
+            "font_color": color, "text_align": "center",
+        }, "%s.pillars.col%d.title" % (sid, ci), area_key)
+        if col.get("desc"):
+            out.add("create_textboxes", {
+                "x": round(cx + 14, 1), "y": round(top + 30, 1), "width": round(cw - 28, 1),
+                "text": str(col["desc"]), "font_size": 12,
+                "font_color": pal.get("ink", DEFAULT_PALETTE["ink"]), "text_align": "center",
+            }, "%s.pillars.col%d.desc" % (sid, ci), area_key)
+
+
+def build_spectrum(out, sid, block, ix, iy, iw, ih, pal, area_key):
+    """A horizontal gradient-approximation bar (row of adjacent color segments) + pole labels
+    at both ends + a marker (dot + label) per `markers[]` at its `at` in [0,1]."""
+    poles = block.get("poles", []) or []
+    markers = block.get("markers", []) or []
+    ink = pal.get("ink", DEFAULT_PALETTE["ink"])
+    c_start = resolve(block.get("startColor", "primary"), pal, "primary")
+    c_end = resolve(block.get("endColor", "accent"), pal, "accent")
+
+    bar_y = iy + 46
+    seg_w = iw / float(SPECTRUM_SEG)
+    # gradient approximation: N adjacent segments blended start->end (backgrounds first).
+    for s in range(SPECTRUM_SEG):
+        t = s / float(SPECTRUM_SEG - 1) if SPECTRUM_SEG > 1 else 0.0
+        out.add("create_shapes", {
+            "shape_type": "rectangle", "x": round(ix + s * seg_w, 1), "y": round(bar_y, 1),
+            "width": round(seg_w + 1, 1), "height": SPECTRUM_BAR_H,
+            "background_color": lerp_hex(c_start, c_end, t),
+            "stroke_color": lerp_hex(c_start, c_end, t), "stroke_size": 0,
+        }, "%s.spec.seg%d" % (sid, s), area_key)
+
+    # pole labels at each end, below the bar.
+    if len(poles) >= 1 and poles[0]:
+        out.add("create_textboxes", {
+            "x": round(ix, 1), "y": round(bar_y + SPECTRUM_BAR_H + 6, 1),
+            "width": round(iw / 2.0, 1), "text": str(poles[0]), "font_size": 13,
+            "bold": True, "font_color": ink,
+        }, "%s.spec.poleL" % sid, area_key)
+    if len(poles) >= 2 and poles[1]:
+        out.add("create_textboxes", {
+            "x": round(ix + iw / 2.0, 1), "y": round(bar_y + SPECTRUM_BAR_H + 6, 1),
+            "width": round(iw / 2.0, 1), "text": str(poles[1]), "font_size": 13,
+            "bold": True, "font_color": ink, "text_align": "right",
+        }, "%s.spec.poleR" % sid, area_key)
+
+    # markers: small dot on the bar + label above, at `at` in [0,1] (clamped inside the bar).
+    r = SPECTRUM_DOT / 2.0
+    for mi, m in enumerate(markers):
+        at = float(m.get("at", 0.5)) if isinstance(m, dict) else 0.5
+        at = max(0.0, min(1.0, at))
+        mx = ix + at * iw
+        mx = min(max(mx, ix + r), ix + iw - r)
+        color = resolve((m.get("color") if isinstance(m, dict) else None)
+                        or CYCLE[mi % len(CYCLE)], pal, "primary")
+        out.add("create_shapes", {
+            "shape_type": "ellipse", "x": round(mx - r, 1),
+            "y": round(bar_y + SPECTRUM_BAR_H / 2.0 - r, 1),
+            "width": SPECTRUM_DOT, "height": SPECTRUM_DOT,
+            "background_color": color, "stroke_color": "#FFFFFF", "stroke_size": 2,
+        }, "%s.spec.dot%d" % (sid, mi), area_key)
+        label = m.get("label", "") if isinstance(m, dict) else str(m)
+        out.add("create_textboxes", {
+            "x": round(mx - 70, 1), "y": round(iy + 8, 1), "width": 140,
+            "text": str(label), "font_size": 12, "bold": True,
+            "font_color": color, "text_align": "center",
+        }, "%s.spec.mlabel%d" % (sid, mi), area_key)
+
+
+def build_rings(out, sid, block, ix, iy, iw, ih, pal, area_key):
+    """Nested concentric ellipses (largest created FIRST so it renders underneath), one per
+    ring, each labeled near the top of its ring. `rings` list is innermost -> outermost."""
+    rings = block.get("rings", []) or []
+    n = len(rings)
+    if n == 0:
+        raise ValueError("rings has no `rings`")
+    D = min(RINGS_MAX_D, iw, ih)
+    cx = ix + iw / 2.0
+    cy = iy + D / 2.0  # shared center; all ellipses concentric
+    # Emit OUTERMOST first (largest -> under), so iterate ring index high->low.
+    for i in range(n - 1, -1, -1):
+        ring = rings[i] if isinstance(rings[i], dict) else {"label": str(rings[i])}
+        d = D * (i + 1) / float(n)
+        color = resolve(ring.get("color", CYCLE[i % len(CYCLE)]), pal, "primary")
+        out.add("create_shapes", {
+            "shape_type": "ellipse", "x": round(cx - d / 2.0, 1), "y": round(cy - d / 2.0, 1),
+            "width": round(d, 1), "height": round(d, 1),
+            "background_color": color, "stroke_color": contrast(color), "stroke_size": 1,
+        }, "%s.ring%d" % (sid, i), area_key)
+    # labels near the top of each ring (painted last, on top).
+    for i in range(n):
+        ring = rings[i] if isinstance(rings[i], dict) else {"label": str(rings[i])}
+        d = D * (i + 1) / float(n)
+        color = resolve(ring.get("color", CYCLE[i % len(CYCLE)]), pal, "primary")
+        out.add("create_textboxes", {
+            "x": round(cx - d / 2.0 + 10, 1), "y": round(cy - d / 2.0 + 8, 1),
+            "width": round(d - 20, 1), "text": str(ring.get("label", "")),
+            "font_size": 13, "bold": True, "font_color": contrast(color),
+            "text_align": "center",
+        }, "%s.ring%d.label" % (sid, i), area_key)
+
+
+def build_venn(out, sid, block, ix, iy, iw, ih, pal, area_key):
+    """2-3 overlapping ellipses with semi-transparent fills (8-digit alpha hex) so the
+    intersection reads; each circle labeled, plus an optional centered `overlapLabel`."""
+    sets = block.get("sets", []) or []
+    n = len(sets)
+    if n < 2 or n > 3:
+        raise ValueError("venn needs 2 or 3 `sets` (got %d)" % n)
+    ink = pal.get("ink", DEFAULT_PALETTE["ink"])
+    avail_h = ih - 30  # top label room
+    if n == 3:
+        D = min(VENN_MAX_D, iw / 1.7, avail_h / 1.55)
+    else:
+        D = min(VENN_MAX_D, iw / 1.7, avail_h)
+    dx = D * 0.62  # horizontal center-to-center distance (overlap ~0.38 D)
+    dy = D * 0.55
+    midx = ix + iw / 2.0
+    top = iy + 24
+    if n == 2:
+        centers = [(midx - dx / 2.0, top + D / 2.0), (midx + dx / 2.0, top + D / 2.0)]
+    else:
+        centers = [(midx - dx / 2.0, top + D / 2.0),
+                   (midx + dx / 2.0, top + D / 2.0),
+                   (midx, top + dy + D / 2.0)]
+    # circles (semi-transparent fills so overlaps blend).
+    for si, st in enumerate(sets):
+        st = st if isinstance(st, dict) else {"label": str(st)}
+        color = resolve(st.get("color", CYCLE[si % len(CYCLE)]), pal, "primary")
+        ccx, ccy = centers[si]
+        out.add("create_shapes", {
+            "shape_type": "ellipse", "x": round(ccx - D / 2.0, 1), "y": round(ccy - D / 2.0, 1),
+            "width": round(D, 1), "height": round(D, 1),
+            "background_color": alpha_hex(color, VENN_ALPHA),
+            "stroke_color": color, "stroke_size": 2,
+        }, "%s.venn.set%d" % (sid, si), area_key)
+    # set labels near the top of each circle.
+    for si, st in enumerate(sets):
+        st = st if isinstance(st, dict) else {"label": str(st)}
+        color = resolve(st.get("color", CYCLE[si % len(CYCLE)]), pal, "primary")
+        ccx, ccy = centers[si]
+        out.add("create_textboxes", {
+            "x": round(ccx - D / 2.0, 1), "y": round(ccy - D / 2.0 + 12, 1),
+            "width": round(D, 1), "text": str(st.get("label", "")),
+            "font_size": 14, "bold": True, "font_color": color, "text_align": "center",
+        }, "%s.venn.set%d.label" % (sid, si), area_key)
+    # optional overlap label at the centroid of all centers.
+    if block.get("overlapLabel"):
+        ox = sum(c[0] for c in centers) / float(n)
+        oy = sum(c[1] for c in centers) / float(n)
+        out.add("create_textboxes", {
+            "x": round(ox - 80, 1), "y": round(oy - LINE_H / 2.0, 1), "width": 160,
+            "text": str(block["overlapLabel"]), "font_size": 12, "bold": True,
+            "font_color": ink, "text_align": "center",
+        }, "%s.venn.overlap" % sid, area_key)
+
+
 def build_chart(out, sid, block, ix, iy, iw, ih, pal, area_key, box):
     """Wire line/pie/bar charts through the reusable builders; unknown types -> manual_blocks."""
     ctype = block.get("chartType")
@@ -1008,9 +1573,17 @@ def compile_board(spec, palette_arg, icons_json):
 
         t = block.get("type")
         if t in ("banner", "callout", "cards", "metrics", "chips",
-                 "table", "flow", "comparison", "chart"):
+                 "table", "flow", "comparison", "chart",
+                 "gauge", "pyramid", "funnel", "quadrant", "pillars",
+                 "spectrum", "rings", "venn"):
             # Every builder degrades to manual_blocks + a warning on any failure — a malformed
             # block must never crash the whole board (build_chart also guards internally).
+            # Snapshot bucket lengths so a builder that raises AFTER emitting some widgets
+            # (some validate mid-layout) is rolled back cleanly: degrading means building
+            # NOTHING for the section, never a half-build orphaned behind the manual placeholder.
+            # (The area + heading were added before this, so they're preserved.)
+            _snap = {k: len(v) for k, v in out.d.items()
+                     if k not in ("manual_blocks", "warnings")}
             try:
                 if t == "banner":
                     build_banner(out, sid, block, ix, iy, iw, ih, pal, area_key)
@@ -1030,7 +1603,25 @@ def compile_board(spec, palette_arg, icons_json):
                     build_comparison(out, sid, block, ix, iy, iw, ih, pal, area_key)
                 elif t == "chart":
                     build_chart(out, sid, block, ix, iy, iw, ih, pal, area_key, box)
+                elif t == "gauge":
+                    build_gauge(out, sid, block, ix, iy, iw, ih, pal, area_key)
+                elif t == "pyramid":
+                    build_pyramid(out, sid, block, ix, iy, iw, ih, pal, area_key)
+                elif t == "funnel":
+                    build_funnel(out, sid, block, ix, iy, iw, ih, pal, area_key)
+                elif t == "quadrant":
+                    build_quadrant(out, sid, block, ix, iy, iw, ih, pal, area_key)
+                elif t == "pillars":
+                    build_pillars(out, sid, block, ix, iy, iw, ih, pal, area_key, icon_index)
+                elif t == "spectrum":
+                    build_spectrum(out, sid, block, ix, iy, iw, ih, pal, area_key)
+                elif t == "rings":
+                    build_rings(out, sid, block, ix, iy, iw, ih, pal, area_key)
+                elif t == "venn":
+                    build_venn(out, sid, block, ix, iy, iw, ih, pal, area_key)
             except Exception as e:
+                for _k, _n in _snap.items():
+                    del out.d[_k][_n:]  # roll back any widgets emitted before the raise
                 out.manual(sid, t, "%s build failed (%s); build from primitives" % (t, e), box)
                 out.warn("section %s: %s -> manual_blocks (%s)" % (sid, t, e))
         elif t is None:
