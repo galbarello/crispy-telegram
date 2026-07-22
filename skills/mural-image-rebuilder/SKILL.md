@@ -74,12 +74,17 @@ for charts and metaphor blocks live in references — **load them only when you 
 turns a board-spec (+ a resolved `--palette` and the `--icons` registry) into one JSON object of
 create-ready, backgrounds-first payloads keyed by create tool (`create_areas`/`create_titles`/
 `create_shapes`/`create_icons`/`create_textboxes`/`connectors`), so you forward arrays rather than
-reasoning out every x/y. It covers the Phase-A blocks — `meta` header, `section`, `banner`,
-`callout`, `cards`, `metrics`, `chips`, and `chart` (line/pie, via the chart scripts) — and passes
-everything else (`table`, `flow`, metaphor blocks, `bar` charts) through in `manual_blocks` for you
-to build by hand. Each widget carries a stable `_key`/`_parent`; `connectors` reference `_key`s.
-Emit each returned array as **one batched `create_*` call** (see "Maximal batching"), mapping
-returned ids back by `position_x/y` (not array index) to set `parent_id` and wire connectors.
+reasoning out every x/y. It covers `meta` header, `section`, `banner`, `callout`, `cards`,
+`metrics`, `chips`, `chart` (line/pie/bar), `table` (area-nested chips + textboxes per
+`table-fidelity.md` — colored per-column headers, tinted bodies, chip/bullet/badge cells),
+`flow` (step nodes + real connectors, closing the cycle on `loop:true`), and `comparison`
+(stacked columns + connectors). It passes the metaphor blocks (`gauge`, `cycle`, `pyramid`,
+`funnel`, `quadrant`, `pillars`, `hub`, `timeline`, `swimlane`, `gantt`, `tree`, `mindmap`,
+`venn`, `spectrum`, `decision`, `rings`) through in `manual_blocks` for you to build by hand, and
+degrades any block whose builder fails to `manual_blocks` + a warning (never crashes). Each widget
+carries a stable `_key`/`_parent`; `connectors` reference `_key`s. Emit each returned array as
+**one batched `create_*` call** (see "Maximal batching"), mapping returned ids back by
+`position_x/y` (not array index) to set `parent_id` and wire connectors.
 
 Then run Layer 6 verification exactly as for an image build. Trust the spec's text and counts
 literally; do not "improve" wording. Fall back to the image/vision path below only when no
@@ -444,7 +449,8 @@ If any item fails, the reconstruction is not done.
 - `references/block-catalog.md`: the block → Mural primitive rebuild recipe for each metaphor block (comparison, cycle, chips, pyramid, funnel, quadrant, pillars, hub, timeline, swimlane, tree, venn, spectrum, decision, rings). Load when a build includes a metaphor block.
 - `references/shape-catalog.md`: visual-signature → `shape_type` lookup, and the probe-then-replicate loop for verifying a shape choice before replicating it.
 - `references/icon-matching.md`: how to reproduce the source's pictograms with real searched icons (search → inspect previews → tint → verify) instead of mismatched emoji, plus the search-cost note and vetted-id shortlist.
-- `scripts/compile_board.py`: deterministic board-spec → batched create-payload compiler. Reads a board-spec (+ `--palette` role→hex and `--icons` `references/icon-registry.json`) and prints one JSON object of backgrounds-first, create-ready arrays keyed by create tool, with a stable `_key`/`_parent` per widget and a `connectors` array referencing `_key`s. Covers Phase-A blocks (meta/section/banner/callout/cards/metrics/chips + line/pie charts); passes the rest through in `manual_blocks`. Emit each array as one batched `create_*` call. See "Consuming a board-spec" and `../../../PERFORMANCE-SPEC.md`.
+- `scripts/compile_board.py`: deterministic board-spec → batched create-payload compiler. Reads a board-spec (+ `--palette` role→hex and `--icons` `references/icon-registry.json`) and prints one JSON object of backgrounds-first, create-ready arrays keyed by create tool, with a stable `_key`/`_parent` per widget and a `connectors` array referencing `_key`s. Covers meta/section/banner/callout/cards/metrics/chips, `chart` (line/pie/bar), `table`, `flow` (with loop connectors), and `comparison`; passes metaphor blocks through in `manual_blocks` (and degrades any failing builder to `manual_blocks` + a warning). Emit each array as one batched `create_*` call. See "Consuming a board-spec" and `../../../PERFORMANCE-SPEC.md`.
+- `scripts/bar_chart.py`: computes create-ready widget arrays for a bar chart (grouped bars for multi-series, y-axis gridlines, category + per-bar value labels, legend) from a JSON spec — mirrors `line_chart.py`/`pie_chart.py`'s `build(spec)` contract; used by `compile_board.py` for `chartType:"bar"`.
 - `scripts/line_chart.py`: computes create-ready widget arrays for a (multi-series) line chart from a JSON spec — gridlines, axes, legend, and per-series hypotenuse segments + markers. Use it for any non-trivial line chart instead of hand-computing rotations.
 - `scripts/pie_chart.py`: computes create-ready widget arrays for a "pie" (a 100%-stacked bar + legend, since Mural has no wedge primitive) from a JSON spec of slices. Use it for any pie/donut/composition request instead of hand-computing segment widths.
 - `scripts/dedupe_widgets.py`: post-build cleanup for the Mural-bridge double-apply bug — reads a `list_widgets` (full) dump and prints the ids of pixel-identical duplicate widgets to delete (keeping one each). Run it as part of Layer 6 whenever the widget count comes back higher than intended.

@@ -76,16 +76,20 @@ contract (one JSON object keyed by create tool, backgrounds-first). Reuses `line
   header and the area frames — have no `_parent`).
 - **Connector handshake:** each widget gets a stable logical `_key`; `connectors` reference keys;
   the build wrapper maps `_key → returned id` **by `position_x/y`** (never by array index — see the
-  response-order finding) after each create batch, then issues one `create_connectors` call. (Phase
-  A emits no connectors; infra present for Phase B.)
+  response-order finding) after each create batch, then issues one `create_connectors` call.
 - **Phase A — SHIPPED:** `meta` header, `section`, `banner`, `callout`, `cards`, `metrics`,
-  `chips`, and `chart` (line/pie via the scripts). Validated on an 8-section sample (99 widgets,
-  unique keys, non-overlapping areas) and a 6-section retest (icons resolved from the registry,
-  `table` → `manual_blocks`).
-- **Phase B (deferred, M):** `table` (reuse `table-fidelity.md`), `flow`/`comparison`, `bar`
-  charts (no reusable builder yet).
-- **Phase C (deferred, L, demand-driven):** metaphor blocks (quadrant, venn, mindmap, tree, gantt,
-  …) — where the model's fidelity judgment matters most; do NOT build speculatively.
+  `chips`, and `chart` (line/pie via the scripts).
+- **Phase B — SHIPPED:** `table` (area-nested chips + textboxes per `table-fidelity.md` — colored
+  per-column headers, tinted bodies, chip/bullet/badge cells), `flow` (step nodes + real
+  connectors, closing the cycle on `loop:true`), `comparison` (stacked columns + intra-column
+  connectors), and `chart chartType:"bar"` (new sibling `bar_chart.py`, grouped multi-series).
+  This is the first real use of the connector handshake — validated that every emitted connector's
+  `from`/`to` `_key` exists among the emitted widgets. Broken sub-builders degrade to
+  `manual_blocks` + a warning (exit 0), like line/pie.
+- **Phase C (deferred, L, demand-driven):** the remaining metaphor blocks (`gauge`, `cycle`,
+  `pyramid`, `funnel`, `quadrant`, `pillars`, `hub`, `timeline`, `swimlane`, `gantt`, `tree`,
+  `mindmap`, `venn`, `spectrum`, `decision`, `rings`) — where the model's fidelity judgment matters
+  most; do NOT build speculatively.
 - **Graceful degradation:** uncovered block types pass through as `manual_blocks` (with `{section,
   type,reason,box}`); unresolved icons drop to `warnings[]` without failing the block. Treat
   compiler output as a tweakable starting payload, not a frozen board.
