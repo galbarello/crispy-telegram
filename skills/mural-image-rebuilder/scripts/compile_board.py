@@ -383,32 +383,46 @@ def build_chart(out, sid, block, ix, iy, iw, ih, pal, area_key, box):
     geom_area = {"x": ix, "y": iy, "w": iw, "h": ih}
 
     if ctype == "line":
-        colors = [resolve(s.get("color", CYCLE[i % len(CYCLE)]), pal)
-                  for i, s in enumerate(block.get("series", []))]
-        spec = {
-            "area": geom_area,
-            "x_labels": block.get("categories", []),
-            "series": [{"name": s.get("name", ""), "color": colors[i],
-                        "values": s["values"]}
-                       for i, s in enumerate(block.get("series", []))],
-        }
-        res = line_chart.build(spec)
+        try:
+            colors = [resolve(s.get("color", CYCLE[i % len(CYCLE)]), pal)
+                      for i, s in enumerate(block.get("series", []))]
+            spec = {
+                "area": geom_area,
+                "x_labels": block.get("categories", []),
+                "series": [{"name": s.get("name", ""), "color": colors[i],
+                            "values": s["values"]}
+                           for i, s in enumerate(block.get("series", []))],
+            }
+            res = line_chart.build(spec)
+        except Exception as e:  # never abort the whole board — degrade this block
+            out.manual(sid, "chart", "line chart build failed (%s); build from "
+                       "primitives" % e, box)
+            out.warn("section %s: line chart -> manual_blocks (%s)" % (sid, e))
+            return
         # merge shapes backgrounds-first: gridlines under, series (segments->markers), legend.
+        # Iterate the returned series dict directly — indexing back by name collapses/duplicates
+        # series that share a name (and would emit duplicate _keys).
         shapes = list(res.get("scaffold_shapes", []))
-        for name in [s.get("name", "") for s in block.get("series", [])]:
-            shapes += res["series"].get(name, [])
+        for _name, arr in res.get("series", {}).items():
+            shapes += arr
         shapes += res.get("legend_shapes", [])
         _merge_chart(out, sid, area_key, shapes, res.get("textboxes", []))
         return
 
     if ctype == "pie":
-        spec = {
-            "area": geom_area,
-            "slices": [{"name": sl.get("label", ""), "value": sl["value"],
-                        "color": resolve(sl.get("color", CYCLE[i % len(CYCLE)]), pal)}
-                       for i, sl in enumerate(block.get("slices", []))],
-        }
-        res = pie_chart.build(spec)
+        try:
+            spec = {
+                "area": geom_area,
+                "slices": [{"name": sl.get("label", ""), "value": sl["value"],
+                            "color": resolve(sl.get("color", CYCLE[i % len(CYCLE)]), pal)}
+                           for i, sl in enumerate(block.get("slices", []))],
+            }
+            res = pie_chart.build(spec)
+        except Exception as e:  # never abort the whole board — degrade this block
+            out.manual(sid, "chart", "pie chart build failed (%s); build from "
+                       "primitives" % e, box)
+            out.warn("section %s: pie chart -> manual_blocks (%s)" % (sid, e))
+            return
         shapes = list(res.get("bar_shapes", [])) + list(res.get("legend_shapes", []))
         _merge_chart(out, sid, area_key, shapes, res.get("textboxes", []))
         return
@@ -608,7 +622,13 @@ def compile_board(spec, palette_arg, icons_json):
         elif t == "chart":
             build_chart(out, sid, block, ix, iy, iw, ih, pal, area_key, box)
         elif t is None:
-            pass  # section frame with no block (rare) — just the area + heading.
+            # A section frame with no block is usually intentional (area + heading only).
+            # But if content was supplied under the wrong key, warn instead of dropping it silently.
+            if "blocks" in sec:
+                out.warn("section %s: found a `blocks` list, but the schema uses a SINGULAR "
+                         "`block` per section — nothing built; fix the spec" % sid)
+            elif sec.get("block"):  # a block object is present but has no/unknown `type`
+                out.warn("section %s: `block` has no recognized `type` — nothing built" % sid)
         else:
             out.manual(sid, t, "block type %r not in Phase A; build from primitives "
                        "(see block-catalog.md)" % t, box)
@@ -635,10 +655,17 @@ def main(argv):
         else:
             spec_path = a
 
-    raw = open(spec_path).read() if spec_path else sys.stdin.read()
-    spec = json.loads(raw)
-    palette_arg = json.loads(open(palette_path).read()) if palette_path else None
-    icons_json = json.loads(open(icons_path).read()) if icons_path else None
+    def _load(path, what):
+        try:
+            raw = open(path).read() if path else sys.stdin.read()
+            return json.loads(raw)
+        except (OSError, ValueError) as e:  # missing file or malformed JSON
+            print("compile_board: could not read %s (%s)" % (what, e), file=sys.stderr)
+            raise SystemExit(1)
+
+    spec = _load(spec_path, "board-spec" if spec_path else "board-spec (stdin)")
+    palette_arg = _load(palette_path, "--palette") if palette_path else None
+    icons_json = _load(icons_path, "--icons") if icons_path else None
 
     result = compile_board(spec, palette_arg, icons_json)
     print(json.dumps(result, indent=2))

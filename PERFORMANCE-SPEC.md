@@ -71,8 +71,9 @@ contract (one JSON object keyed by create tool, backgrounds-first). Reuses `line
 
 - **CLI:** `python3 compile_board.py <spec.json> --palette <palette.json> --icons references/icon-registry.json`
   (spec also accepted on stdin). Output keyed `create_areas/create_titles/create_shapes/
-  create_icons/create_textboxes/connectors/manual_blocks/warnings`; every widget carries `_key`
-  and `_parent`.
+  create_icons/create_textboxes/connectors/manual_blocks/warnings`; every widget carries a `_key`,
+  and content nested in a section frame also carries a `_parent` (top-level items — the `meta.*`
+  header and the area frames — have no `_parent`).
 - **Connector handshake:** each widget gets a stable logical `_key`; `connectors` reference keys;
   the build wrapper maps `_key → returned id` **by `position_x/y`** (never by array index — see the
   response-order finding) after each create batch, then issues one `create_connectors` call. (Phase
