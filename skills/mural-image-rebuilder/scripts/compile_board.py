@@ -1578,6 +1578,12 @@ def compile_board(spec, palette_arg, icons_json):
                  "spectrum", "rings", "venn"):
             # Every builder degrades to manual_blocks + a warning on any failure — a malformed
             # block must never crash the whole board (build_chart also guards internally).
+            # Snapshot bucket lengths so a builder that raises AFTER emitting some widgets
+            # (some validate mid-layout) is rolled back cleanly: degrading means building
+            # NOTHING for the section, never a half-build orphaned behind the manual placeholder.
+            # (The area + heading were added before this, so they're preserved.)
+            _snap = {k: len(v) for k, v in out.d.items()
+                     if k not in ("manual_blocks", "warnings")}
             try:
                 if t == "banner":
                     build_banner(out, sid, block, ix, iy, iw, ih, pal, area_key)
@@ -1614,6 +1620,8 @@ def compile_board(spec, palette_arg, icons_json):
                 elif t == "venn":
                     build_venn(out, sid, block, ix, iy, iw, ih, pal, area_key)
             except Exception as e:
+                for _k, _n in _snap.items():
+                    del out.d[_k][_n:]  # roll back any widgets emitted before the raise
                 out.manual(sid, t, "%s build failed (%s); build from primitives" % (t, e), box)
                 out.warn("section %s: %s -> manual_blocks (%s)" % (sid, t, e))
         elif t is None:
