@@ -26,8 +26,10 @@ Builds run through image + MCP calls that are individually expensive; keep them 
 - **Icons:** `search_icons` returns heavy base64 previews — call it with `limit=3`, **once per
   distinct pictogram**, and reuse ids for repeats; don't re-search a weak match without a new
   term. (`references/icon-matching.md` has the full cost note + a vetted-id shortlist.)
-- **Scripts over round-trips:** compute chart geometry with `scripts/line_chart.py` /
-  `scripts/pie_chart.py` and dedup with `scripts/dedupe_widgets.py` rather than probing the board.
+- **Scripts over round-trips:** compile a whole board-spec to batched payloads with
+  `scripts/compile_board.py` (common blocks), compute chart geometry with `scripts/line_chart.py`
+  / `scripts/pie_chart.py`, and dedup with `scripts/dedupe_widgets.py` rather than probing the
+  board or hand-computing coordinates.
 - **Reuse data you already fetched** — don't re-read state between steps.
 
 ## Consuming a board-spec (from muralize) — the lossless path
@@ -67,6 +69,17 @@ for charts and metaphor blocks live in references — **load them only when you 
 | `chart` (`bar`/`line`/`pie`) | build from primitives in a plot area (axis first, data, labels on top); the value labels are the fidelity, the shapes are the approximation. Recipe: `references/chart-fidelity.md` (+ `scripts/line_chart.py`, `scripts/pie_chart.py`). |
 | `comparison` `cycle` `chips` `pyramid` `funnel` `quadrant` `pillars` `hub` `timeline` `swimlane` `gantt` `tree` `mindmap` `venn` `spectrum` `decision` `rings` | metaphor blocks — one build recipe each in `references/block-catalog.md` (real connectors, area-nested cells, never `create_table`). |
 | `icon` concept names | resolve via the icon-matching loop (or use a supplied `noun_project_id`) — `references/icon-matching.md`. |
+
+**Compile the common blocks instead of hand-computing coordinates.** `scripts/compile_board.py`
+turns a board-spec (+ a resolved `--palette` and the `--icons` registry) into one JSON object of
+create-ready, backgrounds-first payloads keyed by create tool (`create_areas`/`create_titles`/
+`create_shapes`/`create_icons`/`create_textboxes`/`connectors`), so you forward arrays rather than
+reasoning out every x/y. It covers the Phase-A blocks — `meta` header, `section`, `banner`,
+`callout`, `cards`, `metrics`, `chips`, and `chart` (line/pie, via the chart scripts) — and passes
+everything else (`table`, `flow`, metaphor blocks, `bar` charts) through in `manual_blocks` for you
+to build by hand. Each widget carries a stable `_key`/`_parent`; `connectors` reference `_key`s.
+Emit each returned array as **one batched `create_*` call** (see "Maximal batching"), mapping
+returned ids back by `position_x/y` (not array index) to set `parent_id` and wire connectors.
 
 Then run Layer 6 verification exactly as for an image build. Trust the spec's text and counts
 literally; do not "improve" wording. Fall back to the image/vision path below only when no
@@ -200,7 +213,9 @@ Two hard rules learned from real builds:
 
 - **Never use sticky notes for grids, table cells, chips, or anything needing precise
   placement.** Stickies are large (~168px) and auto-nudge on collision — they will
-  relocate, sometimes to negative coordinates. Use textboxes, shapes, or `create_table`.
+  relocate, sometimes to negative coordinates. Use textboxes or shapes (**never
+  `create_table`** — its cells render empty here; build matrices from area-nested chips +
+  textboxes).
 - **Areas are the only real containers, and only via `parent_id`.** Dropping a widget
   inside an area's bounds does not parent it. Create the area first, then parent its
   children, so the section moves and groups as a unit. Newer widgets render on top, so
@@ -429,6 +444,7 @@ If any item fails, the reconstruction is not done.
 - `references/block-catalog.md`: the block → Mural primitive rebuild recipe for each metaphor block (comparison, cycle, chips, pyramid, funnel, quadrant, pillars, hub, timeline, swimlane, tree, venn, spectrum, decision, rings). Load when a build includes a metaphor block.
 - `references/shape-catalog.md`: visual-signature → `shape_type` lookup, and the probe-then-replicate loop for verifying a shape choice before replicating it.
 - `references/icon-matching.md`: how to reproduce the source's pictograms with real searched icons (search → inspect previews → tint → verify) instead of mismatched emoji, plus the search-cost note and vetted-id shortlist.
+- `scripts/compile_board.py`: deterministic board-spec → batched create-payload compiler. Reads a board-spec (+ `--palette` role→hex and `--icons` `references/icon-registry.json`) and prints one JSON object of backgrounds-first, create-ready arrays keyed by create tool, with a stable `_key`/`_parent` per widget and a `connectors` array referencing `_key`s. Covers Phase-A blocks (meta/section/banner/callout/cards/metrics/chips + line/pie charts); passes the rest through in `manual_blocks`. Emit each array as one batched `create_*` call. See "Consuming a board-spec" and `../../../PERFORMANCE-SPEC.md`.
 - `scripts/line_chart.py`: computes create-ready widget arrays for a (multi-series) line chart from a JSON spec — gridlines, axes, legend, and per-series hypotenuse segments + markers. Use it for any non-trivial line chart instead of hand-computing rotations.
 - `scripts/pie_chart.py`: computes create-ready widget arrays for a "pie" (a 100%-stacked bar + legend, since Mural has no wedge primitive) from a JSON spec of slices. Use it for any pie/donut/composition request instead of hand-computing segment widths.
 - `scripts/dedupe_widgets.py`: post-build cleanup for the Mural-bridge double-apply bug — reads a `list_widgets` (full) dump and prints the ids of pixel-identical duplicate widgets to delete (keeping one each). Run it as part of Layer 6 whenever the widget count comes back higher than intended.
