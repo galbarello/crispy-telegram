@@ -296,37 +296,44 @@ def content_height(block, inner_w):
     """Estimated content height (below the heading band) for a block at width inner_w."""
     if block is None:
         return MANUAL_H
-    t = block.get("type")
-    if t == "banner":
-        return BANNER_H
-    if t == "table":
-        return _table_layout(block, inner_w)[3]
-    if t == "flow":
-        return FLOW_NODE_H
-    if t == "comparison":
-        cols = block.get("columns", []) or []
-        maxitems = max((len(c.get("items", []) or []) for c in cols), default=0)
-        return COMP_HEAD_H + maxitems * COMP_BOX_H + max(0, maxitems - 1) * COMP_BOX_GAP
-    if t == "callout":
-        text = block.get("text", "")
-        cpl = max(20, int(inner_w / 9))
-        lines = max(1, int(math.ceil(len(text) / float(cpl))))
-        head = 30 if block.get("label") else 0
-        return 32 + head + lines * 24
-    if t == "cards":
-        cols = max(1, int(block.get("columns", 2)))
-        rows = _grid(len(block.get("items", [])), cols)
-        return rows * CARD_H + max(0, rows - 1) * CARD_GUTTER
-    if t == "metrics":
-        items = block.get("items", [])
-        cols = max(1, int(block.get("columns", min(len(items), 3) or 1)))
-        rows = _grid(len(items), cols)
-        return rows * MET_H + max(0, rows - 1) * CARD_GUTTER
-    if t == "chips":
-        rows = chip_rows(block.get("items", []), inner_w)
-        return rows * CHIP_H + max(0, rows - 1) * CHIP_GAP
-    if t == "chart":
-        return CHART_PIE_H if block.get("chartType") == "pie" else CHART_LINE_H
+    # Sizing runs in layout_sections BEFORE the builders dispatch, so any exception here
+    # (a malformed block that never reaches its guarded builder) must not crash the board —
+    # fall back to a manual-placeholder height; the builder will degrade to manual too.
+    try:
+        t = block.get("type")
+        if t == "banner":
+            return BANNER_H
+        if t == "table":
+            return _table_layout(block, inner_w)[3]
+        if t == "flow":
+            return FLOW_NODE_H
+        if t == "comparison":
+            cols = block.get("columns", []) or []
+            maxitems = max((len(c.get("items", []) or []) for c in cols if isinstance(c, dict)),
+                           default=0)
+            return COMP_HEAD_H + maxitems * COMP_BOX_H + max(0, maxitems - 1) * COMP_BOX_GAP
+        if t == "callout":
+            text = block.get("text", "")
+            cpl = max(20, int(inner_w / 9))
+            lines = max(1, int(math.ceil(len(text) / float(cpl))))
+            head = 30 if block.get("label") else 0
+            return 32 + head + lines * 24
+        if t == "cards":
+            cols = max(1, int(block.get("columns", 2)))
+            rows = _grid(len(block.get("items", [])), cols)
+            return rows * CARD_H + max(0, rows - 1) * CARD_GUTTER
+        if t == "metrics":
+            items = block.get("items", [])
+            cols = max(1, int(block.get("columns", min(len(items), 3) or 1)))
+            rows = _grid(len(items), cols)
+            return rows * MET_H + max(0, rows - 1) * CARD_GUTTER
+        if t == "chips":
+            rows = chip_rows(block.get("items", []), inner_w)
+            return rows * CHIP_H + max(0, rows - 1) * CHIP_GAP
+        if t == "chart":
+            return CHART_PIE_H if block.get("chartType") == "pie" else CHART_LINE_H
+    except Exception:
+        return MANUAL_H
     return MANUAL_H
 
 
@@ -1000,24 +1007,32 @@ def compile_board(spec, palette_arg, icons_json):
         ih = sh - HEAD_BAND - PAD_BOTTOM
 
         t = block.get("type")
-        if t == "banner":
-            build_banner(out, sid, block, ix, iy, iw, ih, pal, area_key)
-        elif t == "callout":
-            build_callout(out, sid, block, ix, iy, iw, ih, pal, area_key)
-        elif t == "cards":
-            build_cards(out, sid, block, ix, iy, iw, ih, pal, area_key, icon_index)
-        elif t == "metrics":
-            build_metrics(out, sid, block, ix, iy, iw, ih, pal, area_key, icon_index)
-        elif t == "chips":
-            build_chips(out, sid, block, ix, iy, iw, ih, pal, area_key)
-        elif t == "table":
-            build_table(out, sid, block, ix, iy, iw, ih, pal, area_key, icon_index)
-        elif t == "flow":
-            build_flow(out, sid, block, ix, iy, iw, ih, pal, area_key, icon_index)
-        elif t == "comparison":
-            build_comparison(out, sid, block, ix, iy, iw, ih, pal, area_key)
-        elif t == "chart":
-            build_chart(out, sid, block, ix, iy, iw, ih, pal, area_key, box)
+        if t in ("banner", "callout", "cards", "metrics", "chips",
+                 "table", "flow", "comparison", "chart"):
+            # Every builder degrades to manual_blocks + a warning on any failure — a malformed
+            # block must never crash the whole board (build_chart also guards internally).
+            try:
+                if t == "banner":
+                    build_banner(out, sid, block, ix, iy, iw, ih, pal, area_key)
+                elif t == "callout":
+                    build_callout(out, sid, block, ix, iy, iw, ih, pal, area_key)
+                elif t == "cards":
+                    build_cards(out, sid, block, ix, iy, iw, ih, pal, area_key, icon_index)
+                elif t == "metrics":
+                    build_metrics(out, sid, block, ix, iy, iw, ih, pal, area_key, icon_index)
+                elif t == "chips":
+                    build_chips(out, sid, block, ix, iy, iw, ih, pal, area_key)
+                elif t == "table":
+                    build_table(out, sid, block, ix, iy, iw, ih, pal, area_key, icon_index)
+                elif t == "flow":
+                    build_flow(out, sid, block, ix, iy, iw, ih, pal, area_key, icon_index)
+                elif t == "comparison":
+                    build_comparison(out, sid, block, ix, iy, iw, ih, pal, area_key)
+                elif t == "chart":
+                    build_chart(out, sid, block, ix, iy, iw, ih, pal, area_key, box)
+            except Exception as e:
+                out.manual(sid, t, "%s build failed (%s); build from primitives" % (t, e), box)
+                out.warn("section %s: %s -> manual_blocks (%s)" % (sid, t, e))
         elif t is None:
             # A section frame with no block is usually intentional (area + heading only).
             # But if content was supplied under the wrong key, warn instead of dropping it silently.
