@@ -78,12 +78,13 @@ reasoning out every x/y. It covers `meta` header, `section`, `banner`, `callout`
 `metrics`, `chips`, `chart` (line/pie/bar), `table` (area-nested chips + textboxes per
 `table-fidelity.md` — colored per-column headers, tinted bodies, chip/bullet/badge cells),
 `flow` (step nodes + real connectors, closing the cycle on `loop:true`), `comparison`
-(stacked columns + connectors), and the static metaphor blocks `gauge` (linear meter), `pyramid`,
-`funnel`, `quadrant` (2×2 + positioned dots), `pillars`, `spectrum`, `rings`, and `venn`. It
-passes the connector/graph-heavy metaphors (`cycle`, `hub`, `timeline`, `swimlane`, `gantt`,
-`tree`, `mindmap`, `decision`) through in `manual_blocks` for you to build by hand, and degrades
-any block whose builder fails to `manual_blocks` + a warning (never crashes). Each widget
-carries a stable `_key`/`_parent`; `connectors` reference `_key`s. Emit each returned array as
+(stacked columns + connectors), the static metaphor blocks `gauge` (linear meter), `pyramid`,
+`funnel`, `quadrant` (2×2 + positioned dots), `pillars`, `spectrum`, `rings`, `venn`, and the
+connector/graph metaphors `cycle`, `hub`, `timeline`, `swimlane`, `gantt`, `tree`, `mindmap`, and
+`decision` — i.e. **every board-spec block type**. `manual_blocks` now only ever holds a
+genuinely-unknown `type` or a block whose builder degraded on malformed input (each with a warning
++ a clean rollback — no orphan widgets, never a crash). Each widget carries a stable
+`_key`/`_parent`; `connectors` reference `_key`s. Emit each returned array as
 **one batched `create_*` call** (see "Maximal batching"), mapping returned ids back by
 `position_x/y` (not array index) to set `parent_id` and wire connectors.
 
