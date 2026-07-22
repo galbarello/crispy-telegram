@@ -77,11 +77,12 @@ create-ready, backgrounds-first payloads keyed by create tool (`create_areas`/`c
 reasoning out every x/y. It covers `meta` header, `section`, `banner`, `callout`, `cards`,
 `metrics`, `chips`, `chart` (line/pie/bar), `table` (area-nested chips + textboxes per
 `table-fidelity.md` — colored per-column headers, tinted bodies, chip/bullet/badge cells),
-`flow` (step nodes + real connectors, closing the cycle on `loop:true`), and `comparison`
-(stacked columns + connectors). It passes the metaphor blocks (`gauge`, `cycle`, `pyramid`,
-`funnel`, `quadrant`, `pillars`, `hub`, `timeline`, `swimlane`, `gantt`, `tree`, `mindmap`,
-`venn`, `spectrum`, `decision`, `rings`) through in `manual_blocks` for you to build by hand, and
-degrades any block whose builder fails to `manual_blocks` + a warning (never crashes). Each widget
+`flow` (step nodes + real connectors, closing the cycle on `loop:true`), `comparison`
+(stacked columns + connectors), and the static metaphor blocks `gauge` (linear meter), `pyramid`,
+`funnel`, `quadrant` (2×2 + positioned dots), `pillars`, `spectrum`, `rings`, and `venn`. It
+passes the connector/graph-heavy metaphors (`cycle`, `hub`, `timeline`, `swimlane`, `gantt`,
+`tree`, `mindmap`, `decision`) through in `manual_blocks` for you to build by hand, and degrades
+any block whose builder fails to `manual_blocks` + a warning (never crashes). Each widget
 carries a stable `_key`/`_parent`; `connectors` reference `_key`s. Emit each returned array as
 **one batched `create_*` call** (see "Maximal batching"), mapping returned ids back by
 `position_x/y` (not array index) to set `parent_id` and wire connectors.
