@@ -94,9 +94,14 @@ contract (one JSON object keyed by create tool, backgrounds-first). Reuses `line
   input so the guarded dispatch degrades it to `manual_blocks` + a warning (exit 0). Validated:
   gauge fill ∝ value, quadrant dots inside plot at x/y ∈ {0,0.5,1}, monotonic pyramid/funnel band
   widths, overlapping venn circles, unique `_key`s, non-overlapping areas.
-- **Phase C-2 (deferred, demand-driven):** the connector/graph-heavy metaphors (`cycle`, `hub`,
-  `timeline`, `swimlane`, `gantt`, `tree`, `mindmap`, `decision`) — bespoke layout + connectors,
-  where the model's fidelity judgment matters most; do NOT build speculatively.
+- **Phase C-2 — SHIPPED:** the connector/graph metaphors `cycle` (ring/2×2 + closing loop),
+  `hub` (center + spokes), `timeline` (axis + milestones), `swimlane` (lanes × cols grid), `gantt`
+  (duration bars + milestones + dependency arrows), `tree` (recursive parent→child), `mindmap`
+  (radiating branches), `decision` (ranked flowchart + labeled edges). Real `Out.connect`
+  connectors referencing node `_key`s; validated that every emitted connector's endpoints exist,
+  loops close, and malformed input degrades to `manual_blocks` + warning with clean rollback (no
+  orphan widgets / dangling connectors). **With this, the compiler covers every board-spec block
+  type** — `manual_blocks` is now only for unknown types or degraded failures.
 - **Graceful degradation:** uncovered block types pass through as `manual_blocks` (with `{section,
   type,reason,box}`); unresolved icons drop to `warnings[]` without failing the block. Treat
   compiler output as a tweakable starting payload, not a frozen board.
