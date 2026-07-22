@@ -91,7 +91,11 @@ follow `dataviz`.
   order** for data series, keep `success`/`warning`/`danger` as **system** colors (never as data
   marks), left-align sentence-case labels, `tabular-nums` with comma-thousands (no `k`/`m`, no
   superscript `%`/`$`), and prefer **spacing + hairline dividers over containers**.
-- Plan icons per section (concept names).
+- Plan icons per section (concept names). **Pre-resolve each concept** against
+  `../mural-image-rebuilder/references/icon-registry.json` and write the `noun_project_id` into
+  the spec's `icon` field (the board-spec supports `icon.noun_project_id`). This lets the
+  rebuilder place icons with **zero `search_icons` calls** for known concepts — the biggest
+  build-time token sink. Leave `noun_project_id` unset only for concepts absent from the registry.
 
 ### Layer 4 — Emit the `board-spec`
 - Produce the full `board-spec` JSON per `references/board-spec.md`. This is the source of

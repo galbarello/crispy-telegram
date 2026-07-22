@@ -19,6 +19,13 @@ mismatched emoji — emoji read as noticeably lower fidelity.
 
 ## Matching loop (real icons)
 
+0. **Check `references/icon-registry.json` FIRST.** It's a machine-readable `concept →
+   noun_project_id` map of verified icons (also keyed by `aliases`). If the pictogram (or an
+   alias) is there, use its id directly and **skip `search_icons` entirely** — this removes the
+   biggest token sink. Only search for concepts absent from the registry; when a fresh search
+   yields a clean, verified match, add it to the registry for next time. (When building from a
+   muralize board-spec, icons arrive pre-resolved with `noun_project_id` already — no lookup or
+   search needed at all.)
 1. **Name each distinct pictogram** from what it depicts — that's the search term:
    "telescope", "people group", "line chart", "target", "shield", "rocket", "flask",
    "magnifying glass". Dedupe: if the same pictogram repeats, search once and reuse the id.
